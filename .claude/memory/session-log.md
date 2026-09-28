@@ -24,3 +24,7 @@
 
 - Reports are admin only (ecom-api `report/`, ecom-admin `/reports`). Cost prices never reach the storefront: product/variant responses only carry `cost_price` for staff tokens.
 
+## 2026-09-29 — Labels and product codes (part 10): nothing changed here
+
+- Variants can now get auto SKUs and in-store EAN-13 barcodes (prefix 200–299) from the API; the storefront shows neither.
+
