@@ -37,3 +37,7 @@
 
 - Stock moves between locations in the admin; the storefront's store stock (`/stores?variant_id=`) reflects it.
 
+## 2026-09-29 — Stock counts (part 13): nothing changed here
+
+- Store stock the storefront shows follows counts made in the admin.
+
