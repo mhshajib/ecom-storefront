@@ -45,3 +45,7 @@
 
 - Purchasing is admin only.
 
+
+## 2026-09-29 — Customer notifications (part 15): nothing changed here
+
+- Emails link to `notifications.storefront_url` + `/account/orders/{id}` (API config), so keep that route stable.
