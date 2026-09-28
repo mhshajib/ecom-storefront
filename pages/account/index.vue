@@ -16,9 +16,22 @@ const load = async () => {
     const me = await auth.refreshMe()
     Object.assign(profile, { name: me?.name || '', email: me?.email || '' })
     orders.value = (await auth.request('/orders', { query: { limit: 20 } })).data || []
+    wallet.value = (await auth.request('/wallet/me')).data
   } catch (e) { error.value = e.message } finally { loading.value = false }
 }
 onMounted(load)
+
+// store credit and loyalty points
+const wallet = ref(null)
+const converting = ref(false)
+const convertMsg = ref('')
+const convert = async () => {
+  converting.value = true; convertMsg.value = ''
+  try {
+    wallet.value = (await auth.request('/wallet/me/convert', { method: 'POST', body: { points: wallet.value.points } })).data
+    convertMsg.value = 'Added to your store credit.'
+  } catch (e) { convertMsg.value = e.message } finally { converting.value = false }
+}
 const saveProfile = async () => {
   saving.value = true; error.value = ''; saved.value = false
   try { auth.user.value = (await auth.request('/auth/me', { method: 'PUT', body: profile })).data; saved.value = true } catch (e) { error.value = e.message } finally { saving.value = false }
@@ -50,6 +63,17 @@ const { date } = { date: (v) => (v ? new Intl.DateTimeFormat('en-GB', { day: 'nu
             <p v-if="saved" class="text-sm text-green-700">Saved.</p>
             <button class="s-btn-dark w-full" :disabled="saving">{{ saving ? 'Saving…' : 'Save' }}</button>
           </form>
+          <div v-if="wallet" class="mt-6 pt-6 border-t border-line">
+            <p class="s-eyebrow text-ink-faint">Rewards</p>
+            <dl class="mt-3 grid grid-cols-2 gap-3 text-sm">
+              <div class="rounded-xl bg-cream p-3"><dt class="text-ink-soft">Store credit</dt><dd class="font-display text-2xl tabular-nums">{{ money(wallet.store_credit) }}</dd></div>
+              <div class="rounded-xl bg-cream p-3"><dt class="text-ink-soft">Points</dt><dd class="font-display text-2xl tabular-nums">{{ wallet.points }}</dd></div>
+            </dl>
+            <p v-if="wallet.loyalty_enabled" class="text-xs text-ink-faint mt-3">Earn {{ wallet.earn_per_100 }} point{{ wallet.earn_per_100 === 1 ? '' : 's' }} per ৳100 on delivered orders. {{ wallet.min_convert }} points or more turn into store credit (1 point = {{ money(wallet.point_value) }}).</p>
+            <button v-if="wallet.loyalty_enabled && wallet.points >= wallet.min_convert" class="s-btn-line w-full mt-3" :disabled="converting" @click="convert">Turn {{ wallet.points }} points into {{ money(wallet.points_worth) }}</button>
+            <p v-if="convertMsg" class="text-sm mt-2">{{ convertMsg }}</p>
+            <p class="text-xs text-ink-faint mt-2">Use store credit at checkout or in our stores.</p>
+          </div>
           <button class="mt-4 w-full text-sm text-ink-soft underline" @click="auth.signOut()">Sign out</button>
         </aside>
 

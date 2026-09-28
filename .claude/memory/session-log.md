@@ -15,3 +15,8 @@
 
 - Account order page: delivered orders show a Returns section (window end date, request form with quantity + reason per item, refund preview, existing returns with status, cancel a pending request). Uses `/returns/returnable`, `/returns`, `/returns/{id}/cancel`. "To pay on delivery" hidden once delivered.
 
+## 2026-09-28 — Coupons, gift cards, store credit at checkout; rewards
+
+- Checkout summary: coupon code (`/coupons/quote` against the API cart, re-quoted when the cart re-prices), gift card code (`/wallet/gift_cards/check`), "use my store credit" (`/wallet/me`); shows discount, wallet parts and "To pay". Order body sends `coupon_code`, `gift_card_code`, `use_store_credit`; when `due_amount` is 0 the payment step is skipped.
+- Account page: Rewards card (store credit, points, earn rule, convert points to credit).
+

@@ -72,6 +72,44 @@ const price = async () => {
 }
 watch([addressId, () => JSON.stringify(cart.lines.value)], price)
 
+// ---- coupon, gift card, store credit ----
+const couponInput = ref('')
+const coupon = ref(null) // quote: { code, discount, free_delivery, description }
+const couponError = ref('')
+const applyCoupon = async (code = couponInput.value.trim()) => {
+  couponError.value = ''
+  if (!code || !priced.value) return
+  try {
+    coupon.value = (await auth.request('/coupons/quote', { method: 'POST', body: { code, cart_id: priced.value.cart_id, delivery_fee: priced.value.delivery_fee } })).data
+    couponInput.value = ''
+  } catch (e) { couponError.value = e.fields?.coupon_code?.[0] || e.message; coupon.value = null }
+}
+watch(priced, (p, old) => { if (coupon.value && p && p !== old) applyCoupon(coupon.value.code) }) // the bag or address changed
+
+const cardInput = ref('')
+const card = ref(null) // { code, balance }
+const cardError = ref('')
+const checkCard = async () => {
+  cardError.value = ''
+  const code = cardInput.value.trim()
+  if (!code) return
+  try { card.value = (await auth.request('/wallet/gift_cards/check', { method: 'POST', body: { code } })).data; cardInput.value = '' } catch (e) { cardError.value = e.fields?.gift_card_code?.[0] || e.message; card.value = null }
+}
+const wallet = ref(null)
+const useCredit = ref(false)
+watch(() => auth.signedIn.value, async (v) => {
+  wallet.value = null
+  if (v) try { wallet.value = (await auth.request('/wallet/me')).data } catch { /* no wallet shown */ }
+}, { immediate: true })
+
+const r2 = (v) => Math.round(v * 100) / 100
+const discount = computed(() => coupon.value?.discount || 0)
+const deliveryFee = computed(() => (coupon.value?.free_delivery ? 0 : priced.value?.delivery_fee || 0))
+const orderTotal = computed(() => (priced.value ? Math.max(0, r2((priced.value.sales_amount || 0) - discount.value + deliveryFee.value)) : cart.subtotal.value))
+const fromCard = computed(() => (card.value ? Math.min(card.value.balance, orderTotal.value) : 0))
+const fromCredit = computed(() => (useCredit.value && wallet.value ? Math.min(wallet.value.store_credit, orderTotal.value - fromCard.value) : 0))
+const toPay = computed(() => Math.max(0, r2(orderTotal.value - fromCard.value - fromCredit.value)))
+
 const selected = computed(() => addresses.value.find((a) => a._id === addressId.value))
 const place = async () => {
   if (!priced.value || !selected.value) return
@@ -81,12 +119,18 @@ const place = async () => {
       cart_id: priced.value.cart_id, address_id: addressId.value,
       customer_name: selected.value.name || auth.user.value?.name || '', customer_phone: selected.value.phone || localPhone(auth.user.value?.phone),
       customer_email: auth.user.value?.email || '',
+      coupon_code: coupon.value?.code || '', gift_card_code: card.value?.code || '', use_store_credit: useCredit.value && fromCredit.value > 0,
     } })).data
+    if (order.due_amount <= 0.005) { // paid in full from the gift card / store credit
+      cart.clear()
+      router.push(`/account/orders/${order._id}?placed=1`)
+      return
+    }
     const pay = (await auth.request(`/orders/${order._id}/payment`, { method: 'POST', body: { payment_gateway: gateway.value } })).data
     cart.clear()
     if (pay.payment_url) { window.location.href = pay.payment_url; return }
     router.push(`/account/orders/${order._id}?placed=1`)
-  } catch (e) { error.value = e.message } finally { placing.value = false }
+  } catch (e) { error.value = e.fields ? Object.values(e.fields).flat().join(' ') : e.message } finally { placing.value = false }
 }
 </script>
 
@@ -172,13 +216,40 @@ const place = async () => {
         </ul>
         <dl class="mt-4 pt-4 border-t border-line space-y-2 text-sm tabular-nums">
           <div class="flex justify-between"><dt class="text-ink-soft">Subtotal</dt><dd>{{ money(priced?.sales_amount ?? cart.subtotal.value) }}</dd></div>
-          <div class="flex justify-between"><dt class="text-ink-soft">Delivery</dt><dd>{{ pricing ? '…' : priced ? money(priced.delivery_fee) : 'Add an address' }}</dd></div>
-          <div class="flex justify-between text-base font-semibold pt-2 border-t border-line"><dt>Total</dt><dd>{{ money(priced?.total_price ?? cart.subtotal.value) }}</dd></div>
+          <div v-if="discount" class="flex justify-between text-gold-deep"><dt>{{ coupon.code }}</dt><dd>−{{ money(discount) }}</dd></div>
+          <div class="flex justify-between"><dt class="text-ink-soft">Delivery</dt><dd>{{ pricing ? '…' : priced ? (coupon?.free_delivery ? 'Free' : money(priced.delivery_fee)) : 'Add an address' }}</dd></div>
+          <div class="flex justify-between text-base font-semibold pt-2 border-t border-line"><dt>Total</dt><dd>{{ money(orderTotal) }}</dd></div>
+          <div v-if="fromCard" class="flex justify-between"><dt class="text-ink-soft">Gift card</dt><dd>−{{ money(fromCard) }}</dd></div>
+          <div v-if="fromCredit" class="flex justify-between"><dt class="text-ink-soft">Store credit</dt><dd>−{{ money(fromCredit) }}</dd></div>
+          <div v-if="fromCard || fromCredit" class="flex justify-between font-semibold"><dt>To pay</dt><dd>{{ money(toPay) }}</dd></div>
           <p class="text-xs text-ink-faint">Prices include VAT.</p>
         </dl>
+        <div class="mt-5 pt-4 border-t border-line space-y-3 text-sm" :class="{ 'opacity-50 pointer-events-none': !priced }">
+          <div v-if="coupon" class="flex items-center justify-between rounded-lg bg-gold/10 px-3 py-2">
+            <span><strong>{{ coupon.code }}</strong> applied<template v-if="coupon.description"> · {{ coupon.description }}</template></span>
+            <button class="underline text-ink-soft" @click="coupon = null">Remove</button>
+          </div>
+          <form v-else class="flex gap-2" @submit.prevent="applyCoupon()">
+            <input v-model="couponInput" class="s-input !py-2 uppercase" placeholder="Coupon code" aria-label="Coupon code">
+            <button class="s-btn-line !px-4 !py-2" :disabled="!couponInput.trim()">Apply</button>
+          </form>
+          <p v-if="couponError" class="text-sale -mt-1">{{ couponError }}</p>
+          <div v-if="card" class="flex items-center justify-between rounded-lg bg-cream px-3 py-2">
+            <span>Gift card <span class="tabular-nums">{{ card.code.slice(-4) }}</span> · {{ money(card.balance) }}</span>
+            <button class="underline text-ink-soft" @click="card = null">Remove</button>
+          </div>
+          <form v-else class="flex gap-2" @submit.prevent="checkCard">
+            <input v-model="cardInput" class="s-input !py-2 uppercase" placeholder="Gift card code" aria-label="Gift card code">
+            <button class="s-btn-line !px-4 !py-2" :disabled="!cardInput.trim()">Use</button>
+          </form>
+          <p v-if="cardError" class="text-sale -mt-1">{{ cardError }}</p>
+          <label v-if="wallet?.store_credit > 0" class="flex items-center gap-2">
+            <input v-model="useCredit" type="checkbox" class="accent-noir-900"> Use my store credit ({{ money(wallet.store_credit) }})
+          </label>
+        </div>
         <p v-if="error" class="mt-4 text-sm text-sale" role="alert">{{ error }}</p>
         <button class="s-btn-gold w-full mt-6" :disabled="!priced || placing || pricing" @click="place">
-          {{ placing ? 'Placing your order…' : gateway === 'cod' ? 'Place order' : 'Pay and place order' }}
+          {{ placing ? 'Placing your order…' : toPay <= 0 || gateway === 'cod' ? 'Place order' : 'Pay and place order' }}
         </button>
         <p class="text-xs text-ink-faint text-center mt-3 flex items-center justify-center gap-1.5"><Icon name="lucide:lock" class="w-3.5 h-3.5" /> Secure checkout</p>
       </aside>
