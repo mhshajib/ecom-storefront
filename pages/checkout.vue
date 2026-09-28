@@ -1,2 +1,188 @@
-<script setup>useSeoMeta({ title: 'Checkout', robots: 'noindex' })</script>
-<template><UiComingSoon icon="lucide:credit-card" title="Checkout is almost ready" body="Your bag is saved on this device. Checkout with cash on delivery and bKash arrives in the next update." /></template>
+<script setup>
+// 1. sign in by phone  2. delivery address  3. review (API cart prices it) and pay.
+useSeoMeta({ title: 'Checkout', robots: 'noindex' })
+const auth = useAuth()
+const cart = useCart()
+const router = useRouter()
+
+const addresses = ref([])
+const addressId = ref('')
+const adding = ref(false)
+const addr = reactive({ name: '', phone: '', address_line: '', city: 'Dhaka', zone: '', area: '', note: '' })
+const addrError = ref('')
+const addrFields = ref(null)
+
+const gateways = ref([])
+const gateway = ref('cod')
+const priced = ref(null) // API cart with delivery fee and total
+const pricing = ref(false)
+const placing = ref(false)
+const error = ref('')
+const note = ref('')
+
+const loadAddresses = async () => {
+  const res = await auth.request('/addresses', { query: { limit: 20 } })
+  addresses.value = res.data || []
+  const def = addresses.value.find((a) => a.default) || addresses.value[0]
+  addressId.value = def?._id || ''
+  adding.value = !addresses.value.length
+  if (adding.value) Object.assign(addr, { name: auth.user.value?.name || '', phone: localPhone(auth.user.value?.phone) })
+}
+const localPhone = (p) => (p && p.startsWith('880') ? `0${p.slice(3)}` : p || '')
+// a new address starts from the account's name and phone
+watch(() => auth.user.value, (u) => {
+  if (!u) return
+  if (!addr.name) addr.name = u.name || ''
+  if (!addr.phone) addr.phone = localPhone(u.phone)
+}, { immediate: true })
+
+const init = async () => {
+  if (!auth.signedIn.value) return
+  try {
+    await loadAddresses()
+    gateways.value = (await api('/payments/gateways')).data?.gateways || ['cod']
+    gateway.value = gateways.value.includes('cod') ? 'cod' : gateways.value[0]
+  } catch (e) { error.value = e.message }
+}
+onMounted(init)
+const onSignedIn = () => init()
+
+const saveAddress = async () => {
+  addrError.value = ''; addrFields.value = null
+  try {
+    const res = await auth.request('/addresses', { method: 'POST', body: { ...addr, call_name: addr.name, alternative_phone: '' } })
+    addresses.value.unshift(res.data)
+    addressId.value = res.data._id
+    adding.value = false
+  } catch (e) { addrError.value = e.message; addrFields.value = e.fields }
+}
+
+// price the bag for the chosen address with an API cart (delivery fee, total)
+const price = async () => {
+  if (!addressId.value || !cart.lines.value.length) { priced.value = null; return }
+  pricing.value = true; error.value = ''
+  try {
+    const body = { address_id: addressId.value, items: cart.lines.value.map((l) => ({ product_id: l.product_id, variant_id: l.variant_id, quantity: l.qty })) }
+    // reuse the cart once made, so re-pricing doesn't leave a trail of carts behind
+    const res = priced.value?.cart_id
+      ? await auth.request(`/carts/${priced.value.cart_id}`, { method: 'PUT', body })
+      : await auth.request('/carts', { method: 'POST', body })
+    priced.value = res.data
+  } catch (e) { error.value = e.message; priced.value = null } finally { pricing.value = false }
+}
+watch([addressId, () => JSON.stringify(cart.lines.value)], price)
+
+const selected = computed(() => addresses.value.find((a) => a._id === addressId.value))
+const place = async () => {
+  if (!priced.value || !selected.value) return
+  placing.value = true; error.value = ''
+  try {
+    const order = (await auth.request('/orders', { method: 'POST', body: {
+      cart_id: priced.value.cart_id, address_id: addressId.value,
+      customer_name: selected.value.name || auth.user.value?.name || '', customer_phone: selected.value.phone || localPhone(auth.user.value?.phone),
+      customer_email: auth.user.value?.email || '',
+    } })).data
+    const pay = (await auth.request(`/orders/${order._id}/payment`, { method: 'POST', body: { payment_gateway: gateway.value } })).data
+    cart.clear()
+    if (pay.payment_url) { window.location.href = pay.payment_url; return }
+    router.push(`/account/orders/${order._id}?placed=1`)
+  } catch (e) { error.value = e.message } finally { placing.value = false }
+}
+</script>
+
+<template>
+  <section class="s-container py-12 sm:py-16">
+    <h1 class="s-title text-4xl sm:text-5xl text-noir-900">Checkout</h1>
+
+    <ClientOnly>
+    <template #fallback><p class="py-20 text-center text-ink-soft">Loading your bag…</p></template>
+    <div v-if="!cart.lines.value.length" class="py-20 text-center">
+      <p class="font-display text-2xl">Your bag is empty</p>
+      <NuxtLink to="/products" class="s-btn-dark mt-6">Explore fragrances</NuxtLink>
+    </div>
+
+    <div v-else class="mt-10 grid lg:grid-cols-[1fr_24rem] gap-10 items-start">
+      <div class="space-y-6">
+        <!-- 1. sign in -->
+        <section class="rounded-2xl bg-white ring-1 ring-line p-6 sm:p-8">
+          <h2 class="font-display text-2xl flex items-center gap-3"><span class="w-8 h-8 rounded-full bg-noir-900 text-gold-light text-sm font-sans flex items-center justify-center">1</span> Your details</h2>
+          <ClientOnly>
+            <div v-if="auth.signedIn.value" class="mt-4 flex items-center justify-between text-sm">
+              <p><span class="text-ink-soft">Signed in as</span> <strong>{{ auth.user.value?.name || localPhone(auth.user.value?.phone) }}</strong> <span class="text-ink-faint">{{ localPhone(auth.user.value?.phone) }}</span></p>
+              <button class="text-ink-soft underline" @click="auth.signOut(); addresses = []">Not you?</button>
+            </div>
+            <div v-else class="mt-6 max-w-sm"><AuthPhoneSignIn ask-name @done="onSignedIn" /></div>
+          </ClientOnly>
+        </section>
+
+        <!-- 2. address -->
+        <section class="rounded-2xl bg-white ring-1 ring-line p-6 sm:p-8" :class="{ 'opacity-50 pointer-events-none': !auth.signedIn.value }">
+          <h2 class="font-display text-2xl flex items-center gap-3"><span class="w-8 h-8 rounded-full bg-noir-900 text-gold-light text-sm font-sans flex items-center justify-center">2</span> Delivery address</h2>
+          <ClientOnly>
+            <div v-if="addresses.length && !adding" class="mt-6 space-y-3">
+              <label v-for="a in addresses" :key="a._id" class="flex gap-3 rounded-xl ring-1 p-4 cursor-pointer" :class="addressId === a._id ? 'ring-noir-900 bg-cream' : 'ring-line'">
+                <input v-model="addressId" type="radio" :value="a._id" class="mt-1 accent-noir-900">
+                <span class="text-sm">
+                  <strong>{{ a.name || 'Address' }}</strong> · {{ a.phone }}<br>
+                  <span class="text-ink-soft">{{ [a.address_line, a.area, a.zone, a.city].filter(Boolean).join(', ') }}</span>
+                </span>
+              </label>
+              <button class="text-sm font-semibold underline" @click="adding = true; Object.assign(addr, { name: auth.user.value?.name || '', phone: localPhone(auth.user.value?.phone) })">+ Add a new address</button>
+            </div>
+            <form v-else-if="auth.signedIn.value" class="mt-6 grid sm:grid-cols-2 gap-4" @submit.prevent="saveAddress">
+              <div><label class="block text-sm font-medium mb-1.5" for="a-name">Receiver's name</label><input id="a-name" v-model="addr.name" required class="s-input" autocomplete="name"></div>
+              <div><label class="block text-sm font-medium mb-1.5" for="a-phone">Receiver's phone</label><input id="a-phone" v-model="addr.phone" required type="tel" class="s-input" autocomplete="tel"></div>
+              <div class="sm:col-span-2"><label class="block text-sm font-medium mb-1.5" for="a-line">House, road, area</label><input id="a-line" v-model="addr.address_line" required class="s-input" autocomplete="street-address" placeholder="House 12, Road 5, Block C"></div>
+              <div>
+                <label class="block text-sm font-medium mb-1.5" for="a-city">District</label>
+                <select id="a-city" v-model="addr.city" class="s-input"><option v-for="d in DISTRICTS" :key="d">{{ d }}</option></select>
+              </div>
+              <div><label class="block text-sm font-medium mb-1.5" for="a-zone">Thana / area</label><input id="a-zone" v-model="addr.zone" required class="s-input" placeholder="e.g. Dhanmondi"></div>
+              <div class="sm:col-span-2"><label class="block text-sm font-medium mb-1.5" for="a-note">Note for the courier <span class="text-ink-faint font-normal">(optional)</span></label><input id="a-note" v-model="addr.note" class="s-input" placeholder="Landmark, best time to call…"></div>
+              <p v-if="addrError" class="sm:col-span-2 text-sm text-sale">{{ addrError }}</p>
+              <div class="sm:col-span-2 flex gap-3">
+                <button class="s-btn-dark">Save address</button>
+                <button v-if="addresses.length" type="button" class="s-btn-line" @click="adding = false">Cancel</button>
+              </div>
+            </form>
+          </ClientOnly>
+        </section>
+
+        <!-- 3. payment -->
+        <section class="rounded-2xl bg-white ring-1 ring-line p-6 sm:p-8" :class="{ 'opacity-50 pointer-events-none': !priced }">
+          <h2 class="font-display text-2xl flex items-center gap-3"><span class="w-8 h-8 rounded-full bg-noir-900 text-gold-light text-sm font-sans flex items-center justify-center">3</span> Payment</h2>
+          <div class="mt-6 grid sm:grid-cols-2 gap-3">
+            <label v-for="g in gateways" :key="g" class="flex gap-3 rounded-xl ring-1 p-4 cursor-pointer" :class="gateway === g ? 'ring-noir-900 bg-cream' : 'ring-line'">
+              <input v-model="gateway" type="radio" :value="g" class="mt-1 accent-noir-900">
+              <span class="text-sm"><strong class="flex items-center gap-2"><Icon :name="GATEWAYS[g]?.icon || 'lucide:wallet'" class="w-4 h-4" />{{ GATEWAYS[g]?.label || g }}</strong><span class="text-ink-soft">{{ GATEWAYS[g]?.hint }}</span></span>
+            </label>
+          </div>
+        </section>
+      </div>
+
+      <!-- summary -->
+      <aside class="rounded-2xl bg-white ring-1 ring-line p-6 lg:sticky lg:top-28">
+        <h2 class="font-display text-2xl">Order summary</h2>
+        <ul class="mt-5 divide-y divide-line">
+          <li v-for="l in cart.lines.value" :key="l.variant_id" class="py-3 flex gap-3 text-sm">
+            <img v-if="l.thumb" :src="l.thumb" alt="" class="w-14 h-16 rounded-lg object-cover ring-1 ring-line">
+            <span class="flex-1 min-w-0"><span class="block font-medium truncate">{{ l.title }}</span><span class="text-ink-faint text-xs">{{ Object.values(l.attrs || {}).join(' · ') }} · × {{ l.qty }}</span></span>
+            <span class="tabular-nums">{{ money(l.price * l.qty) }}</span>
+          </li>
+        </ul>
+        <dl class="mt-4 pt-4 border-t border-line space-y-2 text-sm tabular-nums">
+          <div class="flex justify-between"><dt class="text-ink-soft">Subtotal</dt><dd>{{ money(priced?.sales_amount ?? cart.subtotal.value) }}</dd></div>
+          <div class="flex justify-between"><dt class="text-ink-soft">Delivery</dt><dd>{{ pricing ? '…' : priced ? money(priced.delivery_fee) : 'Add an address' }}</dd></div>
+          <div class="flex justify-between text-base font-semibold pt-2 border-t border-line"><dt>Total</dt><dd>{{ money(priced?.total_price ?? cart.subtotal.value) }}</dd></div>
+          <p class="text-xs text-ink-faint">Prices include VAT.</p>
+        </dl>
+        <p v-if="error" class="mt-4 text-sm text-sale" role="alert">{{ error }}</p>
+        <button class="s-btn-gold w-full mt-6" :disabled="!priced || placing || pricing" @click="place">
+          {{ placing ? 'Placing your order…' : gateway === 'cod' ? 'Place order' : 'Pay and place order' }}
+        </button>
+        <p class="text-xs text-ink-faint text-center mt-3 flex items-center justify-center gap-1.5"><Icon name="lucide:lock" class="w-3.5 h-3.5" /> Secure checkout</p>
+      </aside>
+    </div>
+    </ClientOnly>
+  </section>
+</template>

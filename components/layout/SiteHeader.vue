@@ -2,6 +2,7 @@
 // Centred logo, shop menu from the category tree on the left, search / saved / bag on the right.
 const { data: categories } = await useCategories()
 const cart = useCart()
+const auth = useAuth()
 const saved = useWishlist()
 const route = useRoute()
 
@@ -59,7 +60,7 @@ onMounted(() => {
           <Icon name="lucide:shopping-bag" class="w-5 h-5" />
           <ClientOnly><span v-if="cart.count.value" class="absolute top-1 right-0.5 min-w-4 h-4 px-1 rounded-full bg-gold text-noir-900 text-[0.62rem] font-bold flex items-center justify-center">{{ cart.count.value }}</span></ClientOnly>
         </button>
-        <NuxtLink to="/account" class="hidden md:inline-flex ml-2 s-btn border border-white/30 !px-5 !py-2 hover:border-gold hover:text-gold">Sign in</NuxtLink>
+        <NuxtLink to="/account" class="hidden md:inline-flex ml-2 s-btn border border-white/30 !px-5 !py-2 hover:border-gold hover:text-gold"><ClientOnly fallback="Sign in">{{ auth.signedIn.value ? (auth.user.value?.name?.split(" ")[0] || "Account") : "Sign in" }}</ClientOnly></NuxtLink>
       </div>
     </div>
 
