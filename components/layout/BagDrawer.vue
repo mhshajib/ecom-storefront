@@ -4,7 +4,7 @@ const close = () => { cart.open.value = false }
 const onKey = (e) => { if (e.key === 'Escape') close() }
 onMounted(() => window.addEventListener('keydown', onKey))
 onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
-watch(() => cart.open.value, (v) => { if (import.meta.client) document.body.style.overflow = v ? 'hidden' : '' })
+useScrollLock(computed(() => cart.open.value))
 const attrs = (a) => Object.values(a || {}).join(' · ')
 </script>
 
@@ -25,7 +25,7 @@ const attrs = (a) => Object.values(a || {}).join(' · ')
             <NuxtLink to="/products" class="s-btn-dark mt-6" @click="close">Start shopping</NuxtLink>
           </div>
 
-          <ul v-else class="flex-1 overflow-y-auto divide-y divide-line px-6">
+          <ul v-else class="flex-1 overflow-y-auto divide-y divide-line px-6" data-lenis-prevent>
             <li v-for="l in cart.lines.value" :key="l.variant_id" class="py-5 flex gap-4">
               <NuxtLink :to="`/products/${l.slug}`" class="w-20 h-24 shrink-0 rounded-lg overflow-hidden bg-white border border-line" @click="close">
                 <img v-if="l.thumb" :src="l.thumb" :alt="l.title" class="w-full h-full object-cover" loading="lazy">

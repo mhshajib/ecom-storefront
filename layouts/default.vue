@@ -6,5 +6,6 @@
     <main id="main" class="flex-1"><slot /></main>
     <LayoutSiteFooter />
     <LayoutBagDrawer />
+    <UiToaster />
   </div>
 </template>

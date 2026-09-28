@@ -3,6 +3,7 @@
 const props = defineProps({ open: Boolean, menu: { type: Object, required: true } })
 const emit = defineEmits(['close'])
 const auth = useAuth()
+useScrollLock(computed(() => props.open))
 const level = ref(null) // the dropdown shown, or null for the top level
 watch(() => props.open, (v) => { if (!v) setTimeout(() => (level.value = null), 250) })
 const dropdowns = computed(() => props.menu.items || [])
@@ -20,7 +21,7 @@ const dropdowns = computed(() => props.menu.items || [])
               <button class="w-10 h-10 rounded-full border border-white/25 flex items-center justify-center" aria-label="Close menu" @click="emit('close')"><Icon name="lucide:x" class="w-5 h-5" /></button>
             </div>
 
-            <div class="flex-1 overflow-y-auto overflow-x-hidden relative">
+            <div class="flex-1 overflow-y-auto overflow-x-hidden relative" data-lenis-prevent>
               <Transition mode="out-in" enter-from-class="opacity-0 translate-x-6" enter-active-class="transition duration-200" leave-to-class="opacity-0 -translate-x-6" leave-active-class="transition duration-150">
                 <!-- top level -->
                 <div v-if="!level" key="root" class="p-5">

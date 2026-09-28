@@ -19,17 +19,9 @@ useSeoMeta({ title: () => c.value.name, description: () => c.value.subtitle || c
 
 <template>
   <div>
-    <section class="s-band relative overflow-hidden">
-      <img v-if="c.image" :src="c.image" alt="" class="absolute inset-0 w-full h-full object-cover opacity-35">
-      <div class="s-container relative py-16 sm:py-24 text-center">
-        <p class="s-eyebrow text-gold">Collection</p>
-        <h1 class="s-title text-4xl sm:text-6xl mt-3">{{ c.name }}</h1>
-        <p v-if="c.subtitle" class="text-gold-light/90 mt-3 font-display text-xl italic">{{ c.subtitle }}</p>
-        <div class="flex items-center justify-center gap-3 mt-5 text-gold"><span class="h-px w-16 bg-gold/40" />✦<span class="h-px w-16 bg-gold/40" /></div>
-        <p v-if="c.description" class="text-cream/80 mt-5 max-w-2xl mx-auto">{{ c.description }}</p>
-        <p class="text-cream/60 mt-4 text-sm">{{ total }} {{ total === 1 ? 'product' : 'products' }}</p>
-      </div>
-    </section>
+    <UiPageHero eyebrow="Collection" :title="c.name" :subtitle="c.subtitle" :image="c.image" :note="`${total} ${total === 1 ? 'product' : 'products'}`">
+      <p v-if="c.description" class="text-cream/80 mt-5 max-w-2xl mx-auto">{{ c.description }}</p>
+    </UiPageHero>
     <div class="s-container py-12">
       <ProductGrid :products="products" :loading="pending && !products.length" cols="grid-cols-2 md:grid-cols-3 lg:grid-cols-4" :skeletons="8" />
       <p v-if="!pending && !products.length" class="text-center py-16 text-ink-soft">Nothing here right now. <NuxtLink to="/products" class="underline">See everything</NuxtLink></p>

@@ -67,3 +67,10 @@
 - `LayoutSearchOverlay`: live products (photo, brand, price range), matching brands, recent searches (localStorage), arrow keys + Enter. `LayoutMobileMenu`: drill-down levels, Discover, "New to decants?" → `/pages/decants`.
 - `/brands`: A–Z grid with logos, counts, letter filter, top brands.
 - Gotcha: puppeteer `clip` screenshots of the mega menu came out stale/faded; take full viewport shots.
+
+## 2026-09-29 — Motion (part 19)
+
+- Lenis smooth scroll (`plugins/lenis.client.js`, off for reduced motion, top on each page); `useScrollLock(ref)` stops it + the page scroll while overlays are open (bag, search, phone menu, filters); scrollable panels carry `data-lenis-prevent`.
+- `v-reveal` directive (`plugins/reveal.js`): up/left/right/zoom/fade + delay; items already on screen at load aren't hidden. Used on section headings, product grids (staggered), product page profile, newsletter band.
+- `UiCarousel` (scroll snap, arrows, autoplay with filling dot, pauses on hover/focus/touch), `UiLogoMarquee`, `UiPageHero` (orbit rings) on listing/combos/brands/collection pages, shimmer skeletons (`s-shimmer`), page fade transitions, WhatsApp ping.
+- Toasts (`useToast` + `UiToaster`): add to bag shows a toast with "View bag" instead of opening the drawer; saving/unsaving shows one too.

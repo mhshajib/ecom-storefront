@@ -11,7 +11,7 @@ const year = new Date().getFullYear()
   <footer class="mt-24">
     <!-- newsletter -->
     <section class="s-container">
-      <div class="s-band rounded-2xl px-6 py-14 sm:px-16 text-center">
+      <div v-reveal="'zoom'" class="s-band rounded-2xl px-6 py-14 sm:px-16 text-center">
         <p class="s-eyebrow text-gold">Stay in the loop</p>
         <h2 class="s-title text-3xl sm:text-5xl mt-3">First to know, <em class="text-gold not-italic font-display italic">first to shop</em></h2>
         <p class="text-cream/70 mt-3 text-sm">New arrivals and members-only offers, a couple of times a month.</p>
@@ -72,6 +72,6 @@ const year = new Date().getFullYear()
       v-if="store.whatsapp" :href="`https://wa.me/${store.whatsapp}`" target="_blank" rel="noopener"
       class="fixed bottom-5 right-5 z-30 w-14 h-14 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-lift hover:scale-105 transition"
       aria-label="Chat on WhatsApp"
-    ><Icon name="lucide:message-circle" class="w-7 h-7" /></a>
+    ><span class="absolute inset-0 rounded-full bg-[#25D366] animate-ping opacity-30 motion-reduce:hidden" aria-hidden="true" /><Icon name="lucide:message-circle" class="relative w-7 h-7" /></a>
   </footer>
 </template>

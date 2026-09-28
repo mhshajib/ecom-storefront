@@ -103,6 +103,7 @@ const applyPrice = () => set({ min: minDraft.value || undefined, max: maxDraft.v
 const clearAll = () => router.push({ query: q.value.q ? { q: q.value.q } : {} })
 const activeCount = computed(() => ['category', 'min', 'max', 'on_sale', 'featured'].filter((k) => q.value[k]).length + Object.values(selectedOptions.value).flat().length + chosen.value.length)
 const filtersOpen = ref(false)
+useScrollLock(filtersOpen)
 
 // one brand or one attribute value chosen: that's the page ("Dior", "Eau de Parfum")
 const single = computed(() => {
@@ -116,14 +117,7 @@ useSeoMeta({ title: () => heading.value.replace(/[“”]/g, ''), description: (
 
 <template>
   <div>
-    <section class="s-band">
-      <div class="s-container py-14 sm:py-20 text-center">
-        <p class="s-eyebrow text-gold">{{ category && sub ? category.name : 'Shop' }}</p>
-        <h1 class="s-title text-4xl sm:text-6xl mt-3">{{ heading }}</h1>
-        <div class="flex items-center justify-center gap-3 mt-5 text-gold"><span class="h-px w-16 bg-gold/40" />✦<span class="h-px w-16 bg-gold/40" /></div>
-        <p class="text-cream/70 mt-4 text-sm">{{ pending ? 'Loading…' : `${total} ${total === 1 ? 'product' : 'products'}` }}</p>
-      </div>
-    </section>
+    <UiPageHero :eyebrow="category && sub ? category.name : 'Shop'" :title="heading" :note="pending ? 'Loading…' : `${total} ${total === 1 ? 'product' : 'products'}`" />
 
     <!-- category chips -->
     <div class="border-b border-line bg-cream-deep/60">
@@ -139,7 +133,7 @@ useSeoMeta({ title: () => heading.value.replace(/[“”]/g, ''), description: (
 
     <div class="s-container py-10 grid lg:grid-cols-[17rem_1fr] gap-10">
       <!-- filters -->
-      <aside :class="filtersOpen ? 'fixed inset-0 z-50 bg-cream overflow-y-auto p-6' : 'hidden lg:block'">
+      <aside :class="filtersOpen ? 'fixed inset-0 z-50 bg-cream overflow-y-auto p-6' : 'hidden lg:block'" :data-lenis-prevent="filtersOpen || undefined">
         <div class="flex items-center justify-between lg:hidden mb-6">
           <h2 class="font-display text-2xl text-noir-800">Filters</h2>
           <button class="p-2" aria-label="Close filters" @click="filtersOpen = false"><Icon name="lucide:x" class="w-6 h-6" /></button>

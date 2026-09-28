@@ -15,14 +15,7 @@ useSeoMeta({ title: 'Brands', description: 'The fragrance houses we carry, from 
 
 <template>
   <div>
-    <section class="s-band">
-      <div class="s-container py-14 sm:py-20 text-center">
-        <p class="s-eyebrow text-gold">The houses</p>
-        <h1 class="s-title text-4xl sm:text-6xl mt-3">Luxury fragrance brands</h1>
-        <div class="flex items-center justify-center gap-3 mt-5 text-gold"><span class="h-px w-16 bg-gold/40" />✦<span class="h-px w-16 bg-gold/40" /></div>
-        <p class="text-cream/70 mt-4 text-sm">{{ brands.filter((b) => b.products > 0).length }} houses, each with a legacy of its own</p>
-      </div>
-    </section>
+    <UiPageHero eyebrow="The houses" title="Luxury fragrance brands" :note="`${brands.filter((b) => b.products > 0).length} houses, each with a legacy of its own`" />
 
     <div class="s-container py-12">
       <div v-if="featured.length" class="mb-12">

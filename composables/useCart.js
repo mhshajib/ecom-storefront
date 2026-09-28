@@ -22,7 +22,9 @@ export function useCart() {
     const cap = (n) => (line.max > 0 ? Math.min(n, line.max) : n)
     if (existing) existing.qty = cap(existing.qty + qty)
     else lines.value.push({ ...line, qty: cap(qty) })
-    open.value = true
+    // a toast, not the drawer: shoppers keep browsing and open the bag when they want
+    const size = Object.values(line.attrs || {}).join(' · ')
+    useToast().show({ title: 'Added to your bag', body: [line.title, size].filter(Boolean).join(' · '), image: line.thumb, action: { label: 'View bag', run: () => { open.value = true } } })
   }
   const setQty = (variantId, qty) => {
     const l = lines.value.find((x) => x.variant_id === variantId)

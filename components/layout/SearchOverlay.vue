@@ -3,6 +3,7 @@
 const props = defineProps({ open: Boolean })
 const emit = defineEmits(['close'])
 const { data: brands } = await useBrands()
+useScrollLock(computed(() => props.open))
 const q = ref('')
 const input = ref(null)
 const results = ref([])
@@ -62,7 +63,7 @@ const range = (p) => {
 <template>
   <Teleport to="body">
     <Transition enter-from-class="opacity-0" enter-active-class="transition duration-200" leave-to-class="opacity-0" leave-active-class="transition duration-150">
-      <div v-if="open" class="fixed inset-0 z-[60] bg-noir-950/60 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Search" @click.self="emit('close')" @keydown.esc="emit('close')">
+      <div v-if="open" data-lenis-prevent class="fixed inset-0 z-[60] bg-noir-950/60 backdrop-blur-sm overflow-y-auto" role="dialog" aria-modal="true" aria-label="Search" @click.self="emit('close')" @keydown.esc="emit('close')">
         <div class="s-container pt-6 sm:pt-16">
           <div class="mx-auto max-w-2xl s-search-in">
             <form class="relative" role="search" @submit.prevent="submit">

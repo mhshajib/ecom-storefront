@@ -28,14 +28,7 @@ useSeoMeta({ title: 'Fragrance combos', description: 'Expertly paired fragrance 
 
 <template>
   <div>
-    <section class="s-band">
-      <div class="s-container py-14 sm:py-20 text-center">
-        <p class="s-eyebrow text-gold">Curated sets</p>
-        <h1 class="s-title text-4xl sm:text-6xl mt-3">Fragrance combos</h1>
-        <div class="flex items-center justify-center gap-3 mt-5 text-gold"><span class="h-px w-16 bg-gold/40" />✦<span class="h-px w-16 bg-gold/40" /></div>
-        <p class="text-cream/70 mt-4 text-sm">{{ pending ? 'Loading…' : `${total} expertly paired ${total === 1 ? 'set' : 'sets'}, priced to save` }}</p>
-      </div>
-    </section>
+    <UiPageHero eyebrow="Curated sets" title="Fragrance combos" :note="pending ? 'Loading…' : `${total} expertly paired ${total === 1 ? 'set' : 'sets'}, priced to save`" />
     <div class="border-b border-line bg-cream-deep/60">
       <div class="s-container py-4 flex flex-wrap items-center gap-3">
         <input v-model="search" class="s-input !py-2.5 sm:!w-80" placeholder="Search combos" aria-label="Search combos">

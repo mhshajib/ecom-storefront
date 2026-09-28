@@ -204,11 +204,11 @@ useHead({
     <!-- fragrance profile -->
     <section v-if="hasProfile" class="s-container py-12 border-t border-line">
       <div class="grid lg:grid-cols-[1fr_22rem] gap-10 lg:gap-16">
-        <div>
+        <div v-reveal="'left'">
           <h2 class="s-title text-3xl text-noir-800">About the fragrance</h2>
           <p v-if="p.description" class="mt-5 text-ink-soft leading-relaxed whitespace-pre-line max-w-2xl">{{ p.description }}</p>
         </div>
-        <dl v-if="facts.length" class="divide-y divide-line border-y border-line self-start">
+        <dl v-if="facts.length" v-reveal="'right'" class="divide-y divide-line border-y border-line self-start">
           <div v-for="f in facts" :key="f.k" class="flex justify-between gap-6 py-3.5 text-sm">
             <dt class="text-ink-faint">{{ f.k }}</dt>
             <dd class="text-right font-semibold text-noir-800">
@@ -221,7 +221,7 @@ useHead({
       <div v-if="notes.length" class="mt-14">
         <h2 class="s-title text-3xl text-noir-800">Notes</h2>
         <ol class="mt-6 grid sm:grid-cols-3 gap-4">
-          <li v-for="(t, i) in notes" :key="t.k" class="rounded-2xl bg-white ring-1 ring-line p-6">
+          <li v-for="(t, i) in notes" :key="t.k" v-reveal="{ dir: 'up', delay: i * 90 }" class="rounded-2xl bg-white ring-1 ring-line p-6">
             <p class="flex items-center gap-3">
               <span class="w-8 h-8 rounded-full bg-noir-800 text-gold-light flex items-center justify-center text-sm font-semibold">{{ i + 1 }}</span>
               <span><span class="block font-display text-xl text-noir-800">{{ t.k }} notes</span><span class="block text-xs text-ink-faint">{{ t.hint }}</span></span>
@@ -234,7 +234,7 @@ useHead({
       </div>
 
       <div v-if="perf.longevity || perf.projection || seasons.length || occasions.length" class="mt-14 grid lg:grid-cols-2 gap-10 lg:gap-16">
-        <div v-if="perf.longevity || perf.projection">
+        <div v-if="perf.longevity || perf.projection" v-reveal="'left'">
           <h2 class="s-title text-3xl text-noir-800">Performance</h2>
           <div v-for="m in [{ k: 'Longevity', v: perf.longevity, max: 5, scale: LONGEVITY }, { k: 'Projection', v: perf.projection, max: 4, scale: PROJECTION }].filter((x) => x.v)" :key="m.k" class="mt-6">
             <p class="flex justify-between text-sm"><span class="text-ink-soft">{{ m.k }}</span><span class="font-semibold text-noir-800">{{ m.scale[m.v].label }}</span></p>
@@ -244,7 +244,7 @@ useHead({
             <p class="text-xs text-ink-faint mt-1.5">{{ m.scale[m.v].hint }}</p>
           </div>
         </div>
-        <div v-if="seasons.length || occasions.length">
+        <div v-if="seasons.length || occasions.length" v-reveal="'right'">
           <h2 class="s-title text-3xl text-noir-800">When to wear</h2>
           <div v-if="allSeasons.length" class="flex flex-wrap gap-5 mt-6">
             <NuxtLink v-for="s in allSeasons" :key="s.slug" :to="`/products?f.season=${s.slug}`" class="text-center group" :class="seasons.some((x) => x.slug === s.slug) ? '' : 'opacity-35'">

@@ -13,6 +13,7 @@ export default defineNuxtConfig({
   icon: { serverBundle: 'local', clientBundle: { scan: true }, mode: 'svg' },
   css: ['~/assets/css/main.css'],
   app: {
+    pageTransition: { name: 'page', mode: 'out-in' },
     head: {
       htmlAttrs: { lang: 'en' },
       meta: [

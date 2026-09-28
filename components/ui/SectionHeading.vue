@@ -2,7 +2,7 @@
 defineProps({ eyebrow: String, title: String, highlight: String, body: String, center: Boolean, light: Boolean, to: String, linkLabel: { type: String, default: 'View all' } })
 </script>
 <template>
-  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between" :class="{ 'items-center text-center sm:flex-col sm:items-center': center }">
+  <div v-reveal class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between" :class="{ 'items-center text-center sm:flex-col sm:items-center': center }">
     <div :class="{ 'max-w-2xl': center }">
       <p v-if="eyebrow" class="s-eyebrow" :class="light ? 'text-gold' : 'text-ink-faint'">{{ eyebrow }}</p>
       <h2 class="s-title text-3xl sm:text-[2.6rem] mt-2" :class="light ? 'text-cream' : 'text-noir-800'">
