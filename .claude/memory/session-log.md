@@ -10,3 +10,8 @@
 
 - `useAuth` (token + user in cookies mirrored in `useState`), `AuthPhoneSignIn` (phone → code; shows the dev code in test mode). Checkout: sign in → pick/add address (districts list) → API cart prices delivery → payment method from `/payments/gateways` → order + payment (redirect for online gateways) → `/account/orders/[id]?placed=1`. Account page: profile, orders; order detail with progress.
 - Local test customers: 01999000111 … 01999000777 (dev codes, no SMS).
+
+## 2026-09-28 — Return requests
+
+- Account order page: delivered orders show a Returns section (window end date, request form with quantity + reason per item, refund preview, existing returns with status, cancel a pending request). Uses `/returns/returnable`, `/returns`, `/returns/{id}/cancel`. "To pay on delivery" hidden once delivered.
+
