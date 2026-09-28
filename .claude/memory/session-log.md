@@ -60,3 +60,10 @@
 
 - `/combos` (search, gender chips, sort, paged), `/collections/[slug]` (hero with image/subtitle, paged grid), "Combos" in the header. Cards: combos show "Save ৳X" (`comboSaving`) and "Combo · n scents". Product page for a combo: saving vs one by one, What's inside (links to each item).
 - `Makefile`: install, dev, build, start, preview, clean, reinstall.
+
+## 2026-09-29 — Mega menus, search overlay, phone menu, brands page (part 18)
+
+- Header reads `/storefront/menu` (`useMenu`): `LayoutMegaMenu` (links with hover arrow, pills, picture cards 3-up or 2×2, top brands grid + Browse all), hover intent (140 ms grace), gold underline for open/current entry, Esc closes, `/` or Cmd+K opens search.
+- `LayoutSearchOverlay`: live products (photo, brand, price range), matching brands, recent searches (localStorage), arrow keys + Enter. `LayoutMobileMenu`: drill-down levels, Discover, "New to decants?" → `/pages/decants`.
+- `/brands`: A–Z grid with logos, counts, letter filter, top brands.
+- Gotcha: puppeteer `clip` screenshots of the mega menu came out stale/faded; take full viewport shots.

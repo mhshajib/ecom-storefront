@@ -64,3 +64,8 @@ export const comboSaving = (p) => {
   if (!p?.is_combo) return 0
   return Math.max(0, ...(p.variants || []).map((v) => (v.bundle_value || 0) - (v.sale_price || 0)))
 }
+
+/** The storefront menu (links resolved by the API: href + display_*), cached. */
+export function useMenu() {
+  return useAsyncData('menu', async () => (await api('/storefront/menu')).data || { items: [], discover: [] }, { default: () => ({ items: [], discover: [] }) })
+}

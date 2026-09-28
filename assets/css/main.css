@@ -36,6 +36,11 @@
   /* metallic gold for highlights, like the wordmark */
   .s-gold-text { background: linear-gradient(100deg, #9A7430 0%, #E8CF94 38%, #C9A24E 60%, #F1DDA8 78%, #9A7430 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .s-rule { @apply block h-[3px] w-16 rounded-full bg-gold; }
+  /* mega menu columns rise in one after another */
+  .s-menu-col { animation: s-menu-in .38s cubic-bezier(.2,.7,.2,1) both; }
+  @keyframes s-menu-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .s-search-in { animation: s-menu-in .3s cubic-bezier(.2,.7,.2,1) both; }
+  @media (prefers-reduced-motion: reduce) { .s-menu-col, .s-search-in { animation: none; } }
 }
 
 @media (prefers-reduced-motion: reduce) {
