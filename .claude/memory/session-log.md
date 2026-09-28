@@ -74,3 +74,7 @@
 - `v-reveal` directive (`plugins/reveal.js`): up/left/right/zoom/fade + delay; items already on screen at load aren't hidden. Used on section headings, product grids (staggered), product page profile, newsletter band.
 - `UiCarousel` (scroll snap, arrows, autoplay with filling dot, pauses on hover/focus/touch), `UiLogoMarquee`, `UiPageHero` (orbit rings) on listing/combos/brands/collection pages, shimmer skeletons (`s-shimmer`), page fade transitions, WhatsApp ping.
 - Toasts (`useToast` + `UiToaster`): add to bag shows a toast with "View bag" instead of opening the drawer; saving/unsaving shows one too.
+
+## 2026-09-29 — Home page from the builder (part 20)
+
+- `pages/index.vue` renders `/storefront/home` sections with `components/home/*`: Hero (crossfade, Ken Burns, Previous/Next filling line), Split, Brands (logo tiles marquee), Combos (figures + autoplay carousel), Products (5-up grid), Cards (her/him/unisex with a wide last card, 2×2 seasons, 3 styles), Curated (arched picture carousel), Stats (live figures + promise cards), Testimonials (quote + avatar picker with progress), Faq (animated accordion). Old HeroSection/CategoryShowcase/OfferBand/PromiseStrip/FaqSection removed.

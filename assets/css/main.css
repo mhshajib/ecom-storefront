@@ -70,10 +70,14 @@
   @keyframes s-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
   .s-marquee-mask { mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
 
+  /* hero pictures drift in slowly */
+  .s-kenburns { animation: s-kenburns 14s ease-out both; }
+  @keyframes s-kenburns { from { transform: scale(1.08); } to { transform: scale(1); } }
+
   /* page to page */
   .page-enter-active, .page-leave-active { transition: opacity .22s ease; }
   .page-enter-from, .page-leave-to { opacity: 0; }
-  @media (prefers-reduced-motion: reduce) { .s-menu-col, .s-search-in, .s-orbit, .s-shimmer::after, .s-fill { animation: none; } .s-reveal { opacity: 1; transform: none; } .page-enter-active, .page-leave-active { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .s-menu-col, .s-search-in, .s-orbit, .s-shimmer::after, .s-fill, .s-kenburns { animation: none; } .s-reveal { opacity: 1; transform: none; } .page-enter-active, .page-leave-active { transition: none; } }
 }
 
 @media (prefers-reduced-motion: reduce) {
