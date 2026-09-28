@@ -1,8 +1,11 @@
 <script setup>
-// Listing: category / sub category, search, price range, offers, option filters (from the category), sort.
+// Listing: category / sub category, search, price range, offers, brands, attributes (gender, concentration,
+// season, notes… with live counts), option filters (from the category), sort.
 const route = useRoute()
 const router = useRouter()
 const { data: categories } = await useCategories()
+const { data: attributes } = await useAttributes()
+const { data: brands } = await useBrands()
 
 const SORTS = {
   new: { label: 'Newest', api: 'timestamp.created_at:desc' },
@@ -21,6 +24,10 @@ const optionFilters = computed(() => ((sub.value?.filters?.length ? sub.value : 
 // ?opt.Binding=Hardcover,Paperback
 const selectedOptions = computed(() => Object.fromEntries(Object.entries(q.value)
   .filter(([k]) => k.startsWith('opt.')).map(([k, v]) => [k.slice(4), String(v).split(',').filter(Boolean)])))
+// ?brand=dior,creed and ?f.concentration=edp,parfum
+const selectedBrands = computed(() => String(q.value.brand || '').split(',').filter(Boolean))
+const selectedFacets = computed(() => Object.fromEntries(Object.entries(q.value)
+  .filter(([k]) => k.startsWith('f.')).map(([k, v]) => [k.slice(2), String(v).split(',').filter(Boolean)])))
 const page = computed(() => Math.max(1, Number(q.value.page) || 1))
 const sort = computed(() => (SORTS[q.value.sort] ? q.value.sort : 'new'))
 
@@ -29,11 +36,49 @@ const apiQuery = computed(() => ({
   category_id: category.value?._id, sub_category_id: sub.value?._id, q: q.value.q,
   min_price: q.value.min, max_price: q.value.max, on_sale: q.value.on_sale === 'true' ? true : undefined,
   options: Object.values(selectedOptions.value).filter((vs) => vs.length).map((vs) => vs.join(',')),
+  brand: selectedBrands.value.join(',') || undefined,
+  featured: q.value.featured === 'true' ? true : undefined,
+  ...Object.fromEntries(Object.entries(selectedFacets.value).filter(([, vs]) => vs.length).map(([k, vs]) => [`f.${k}`, vs.join(',')])),
 }))
 
 const { data, pending, error } = await useAsyncData('listing', () => api('/products', { query: apiQuery.value }), {
   watch: [apiQuery], default: () => ({ data: [], pagination: null }),
 })
+// how many products each brand / value would give (the brand and attribute filters themselves aside)
+const { data: counts } = await useAsyncData('listing-counts', () => api('/products/facets', { query: { ...apiQuery.value, page: undefined, limit: undefined, sort_by: undefined } }).then((r) => r.data), {
+  watch: [apiQuery], default: () => null,
+})
+const countOf = (attr, slug) => counts.value?.facets?.[attr]?.[slug] || 0
+const brandCount = (id) => counts.value?.brands?.[id] || 0
+const filterAttrs = computed(() => attributes.value.filter((a) => a.filterable).map((a) => ({
+  ...a,
+  values: a.values.filter((v) => countOf(a.slug, v.slug) > 0 || selectedFacets.value[a.slug]?.includes(v.slug)),
+})).filter((a) => a.values.length))
+const brandChoices = computed(() => brands.value.filter((b) => brandCount(b._id) > 0 || selectedBrands.value.includes(b.slug)))
+// long lists (brands, notes) get a search box and show the biggest first
+const finder = reactive({})
+const expanded = reactive({})
+const LONG = 10
+const visibleValues = (key, list, count) => {
+  const t = (finder[key] || '').trim().toLowerCase()
+  const sorted = list.length > LONG ? [...list].sort((a, b) => count(b) - count(a)) : list
+  const hit = t ? sorted.filter((v) => (v.label || v.name).toLowerCase().includes(t)) : sorted
+  return expanded[key] || t ? hit : hit.slice(0, LONG)
+}
+const toggleFacet = (attr, value) => {
+  const cur = selectedFacets.value[attr] || []
+  const next = cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value]
+  set({ [`f.${attr}`]: next.join(',') || undefined })
+}
+const toggleBrand = (slug) => {
+  const cur = selectedBrands.value
+  set({ brand: (cur.includes(slug) ? cur.filter((v) => v !== slug) : [...cur, slug]).join(',') || undefined })
+}
+// what's chosen, as removable chips
+const chosen = computed(() => [
+  ...selectedBrands.value.map((b) => ({ key: `b-${b}`, label: brands.value.find((x) => x.slug === b)?.name || b, off: () => toggleBrand(b) })),
+  ...Object.entries(selectedFacets.value).flatMap(([a, vs]) => vs.map((v) => ({ key: `f-${a}-${v}`, label: valueLabel(attributes.value, a, v), off: () => toggleFacet(a, v) }))),
+])
 const products = computed(() => data.value?.data || [])
 const total = computed(() => data.value?.pagination?.total || 0)
 const pages = computed(() => Math.max(1, Math.ceil(total.value / PAGE)))
@@ -56,10 +101,15 @@ const maxDraft = ref(q.value.max || '')
 watch(() => [q.value.min, q.value.max], ([a, b]) => { minDraft.value = a || ''; maxDraft.value = b || '' })
 const applyPrice = () => set({ min: minDraft.value || undefined, max: maxDraft.value || undefined })
 const clearAll = () => router.push({ query: q.value.q ? { q: q.value.q } : {} })
-const activeCount = computed(() => ['category', 'min', 'max', 'on_sale'].filter((k) => q.value[k]).length + Object.values(selectedOptions.value).flat().length)
+const activeCount = computed(() => ['category', 'min', 'max', 'on_sale', 'featured'].filter((k) => q.value[k]).length + Object.values(selectedOptions.value).flat().length + chosen.value.length)
 const filtersOpen = ref(false)
 
-const heading = computed(() => (q.value.q ? `Results for “${q.value.q}”` : sub.value?.name || category.value?.name || (q.value.on_sale ? 'Offers' : 'The collection')))
+// one brand or one attribute value chosen: that's the page ("Dior", "Eau de Parfum")
+const single = computed(() => {
+  if (!chosen.value.length || chosen.value.length > 2) return ''
+  return chosen.value.map((c) => c.label).join(' · ')
+})
+const heading = computed(() => (q.value.q ? `Results for “${q.value.q}”` : single.value || sub.value?.name || category.value?.name || (q.value.on_sale ? 'Offers' : q.value.featured ? 'Featured' : 'The collection')))
 const { store } = useAppConfig()
 useSeoMeta({ title: () => heading.value.replace(/[“”]/g, ''), description: () => category.value?.description || store.description })
 </script>
@@ -123,6 +173,34 @@ useSeoMeta({ title: () => heading.value.replace(/[“”]/g, ''), description: (
             </label>
           </fieldset>
 
+          <fieldset v-if="brandChoices.length">
+            <legend class="font-display text-lg text-noir-800 mb-3">Brand</legend>
+            <input v-if="brandChoices.length > LONG" v-model="finder.brand" class="s-input !px-3 !py-2 !rounded-lg mb-3 text-sm" placeholder="Search brands" aria-label="Search brands">
+            <ul class="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+              <li v-for="b in visibleValues('brand', brandChoices, (x) => brandCount(x._id))" :key="b._id">
+                <label class="flex items-center gap-3 cursor-pointer text-sm">
+                  <input type="checkbox" class="w-4 h-4 accent-noir-800" :checked="selectedBrands.includes(b.slug)" @change="toggleBrand(b.slug)">
+                  <span class="flex-1">{{ b.name }}</span><span class="text-ink-faint text-xs tabular-nums">{{ brandCount(b._id) }}</span>
+                </label>
+              </li>
+            </ul>
+            <button v-if="brandChoices.length > LONG && !finder.brand" class="text-xs font-semibold text-noir-800 mt-2 underline" @click="expanded.brand = !expanded.brand">{{ expanded.brand ? 'Show fewer' : `All ${brandChoices.length} brands` }}</button>
+          </fieldset>
+
+          <fieldset v-for="a in filterAttrs" :key="a.slug">
+            <legend class="font-display text-lg text-noir-800 mb-3">{{ a.name }}</legend>
+            <input v-if="a.values.length > LONG" v-model="finder[a.slug]" class="s-input !px-3 !py-2 !rounded-lg mb-3 text-sm" :placeholder="`Search ${a.name.toLowerCase()}`" :aria-label="`Search ${a.name.toLowerCase()}`">
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="v in visibleValues(a.slug, a.values, (x) => countOf(a.slug, x.slug))" :key="v.slug" class="s-chip !py-1.5 !text-xs" :class="{ 's-chip-on': selectedFacets[a.slug]?.includes(v.slug) }"
+                :aria-pressed="!!selectedFacets[a.slug]?.includes(v.slug)" @click="toggleFacet(a.slug, v.slug)"
+              >
+                <Icon v-if="v.icon" :name="v.icon" class="w-3.5 h-3.5" />{{ v.label }}<span class="opacity-60 tabular-nums">{{ countOf(a.slug, v.slug) }}</span>
+              </button>
+            </div>
+            <button v-if="a.values.length > LONG && !finder[a.slug]" class="text-xs font-semibold text-noir-800 mt-2 underline" @click="expanded[a.slug] = !expanded[a.slug]">{{ expanded[a.slug] ? 'Show fewer' : `All ${a.values.length}` }}</button>
+          </fieldset>
+
           <fieldset v-for="f in optionFilters" :key="f.group">
             <legend class="font-display text-lg text-noir-800 mb-3">{{ f.group }}</legend>
             <div class="flex flex-wrap gap-2">
@@ -136,7 +214,7 @@ useSeoMeta({ title: () => heading.value.replace(/[“”]/g, ''), description: (
               </button>
             </div>
           </fieldset>
-          <p v-if="!category" class="text-xs text-ink-faint">Pick a category for more filters, like size or colour.</p>
+
         </div>
         <button class="s-btn-dark w-full mt-6 lg:hidden" @click="filtersOpen = false">Show {{ total }} products</button>
       </aside>
@@ -152,6 +230,10 @@ useSeoMeta({ title: () => heading.value.replace(/[“”]/g, ''), description: (
           </label>
         </div>
 
+        <div v-if="chosen.length" class="flex flex-wrap items-center gap-2 -mt-4 mb-8">
+          <button v-for="c in chosen" :key="c.key" class="s-chip s-chip-on !py-1.5 !text-xs" :aria-label="`Remove ${c.label}`" @click="c.off()">{{ c.label }} <Icon name="lucide:x" class="w-3 h-3" /></button>
+          <button class="text-xs font-semibold text-sale ml-1" @click="clearAll">Clear all</button>
+        </div>
         <p v-if="error" class="text-center py-16 text-sale">We couldn't load products right now. Please try again.</p>
         <template v-else>
           <ProductGrid :products="products" :loading="pending && !products.length" cols="grid-cols-2 md:grid-cols-3" :skeletons="6" />

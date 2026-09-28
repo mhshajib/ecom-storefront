@@ -49,3 +49,9 @@
 ## 2026-09-29 — Customer notifications (part 15): nothing changed here
 
 - Emails link to `notifications.storefront_url` + `/account/orders/{id}` (API config), so keep that route stable.
+
+## 2026-09-29 — Brands, attributes, fragrance profile (part 16)
+
+- Cards show the brand above the title. Listing: brand + every filterable attribute as filters with live counts (`/products/facets`), searchable long lists (brands, notes), removable chips, heading follows one or two choices ("Eau de Parfum", "Creed · Eau de Parfum"). URL params `brand=`, `f.<attr>=`, `featured=`.
+- Product page: brand • concentration line, limited/featured badges, variant photo + caption per size, About (description + facts), notes pyramid (chips link to `?f.notes=`), performance bars, When to wear (season icons + occasions), More from the brand, related by fragrance family.
+- Helpers in `useCatalog.js`: `useAttributes`, `useBrands`, `valueLabel`, `valuesOf`, `eyebrowOf`, `LONGEVITY`/`PROJECTION`.

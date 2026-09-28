@@ -24,7 +24,7 @@ const soldOut = computed(() => (props.product.variants || []).length > 0 && onli
         </div>
       </div>
       <div class="pt-4 text-center px-2">
-        <p v-if="categoryLabel(product)" class="s-eyebrow text-ink-faint">{{ categoryLabel(product) }}</p>
+        <p v-if="eyebrowOf(product)" class="s-eyebrow text-ink-faint">{{ eyebrowOf(product) }}</p>
         <h3 class="mt-1.5 leading-snug text-[0.98rem] group-hover:text-noir-800">{{ product.title }}</h3>
         <p class="mt-1.5 text-sm tabular-nums">
           <span v-if="price.max > price.min" class="text-ink-faint">From </span>

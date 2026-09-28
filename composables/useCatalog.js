@@ -32,3 +32,29 @@ export const onlineStockOf = (p) => (p?.variants || []).reduce((n, v) => n + Mat
 export const productUrl = (p) => `/products/${p.slug}`
 
 export const categoryLabel = (p) => p?.sub_category?.name || p?.category?.name || ''
+
+/** Every attribute (Gender, Concentration, Season, Notes…) with its values, cached. */
+export function useAttributes() {
+  return useAsyncData('attributes', async () => (await api('/attributes')).data || [], { default: () => [] })
+}
+
+/** Every brand on the store (name order), cached. */
+export function useBrands() {
+  return useAsyncData('brands', async () => (await api('/brands', { query: { limit: 100 } })).data || [], { default: () => [] })
+}
+
+/** The label of an attribute value, e.g. ('concentration', 'edp') → Eau de Parfum. */
+export const valueLabel = (attributes, attr, slug) => attributes?.find((a) => a.slug === attr)?.values.find((v) => v.slug === slug)?.label || slug
+
+/** The value objects a product has for an attribute. */
+export const valuesOf = (attributes, p, attr) => {
+  const a = attributes?.find((x) => x.slug === attr)
+  return (p?.facets?.[attr] || []).map((s) => a?.values.find((v) => v.slug === s) || { slug: s, label: s })
+}
+
+/** What a card shows above the title: the brand, or the category. */
+export const eyebrowOf = (p) => p?.brand?.name || categoryLabel(p)
+
+// how a fragrance wears (0 = not rated)
+export const LONGEVITY = [null, { label: 'Weak', hint: 'Under 2 hours' }, { label: 'Moderate', hint: '2 to 4 hours' }, { label: 'Long lasting', hint: '4 to 6 hours' }, { label: 'Very long lasting', hint: '6 to 10 hours' }, { label: 'Eternal', hint: '10 hours or more' }]
+export const PROJECTION = [null, { label: 'Intimate', hint: 'Close to the skin' }, { label: 'Moderate', hint: 'Arm’s length' }, { label: 'Strong', hint: 'Noticed across a room' }, { label: 'Enormous', hint: 'Fills the room' }]
