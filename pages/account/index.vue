@@ -20,6 +20,13 @@ const load = async () => {
   } catch (e) { error.value = e.message } finally { loading.value = false }
 }
 onMounted(load)
+// signed in from a page that sent them here (e.g. to write a review): back there
+const route = useRoute()
+const signedIn = () => {
+  const next = String(route.query.next || '')
+  if (next.startsWith('/') && !next.startsWith('//')) return navigateTo(next)
+  load()
+}
 
 // store credit and loyalty points
 const wallet = ref(null)
@@ -48,7 +55,7 @@ const { date } = { date: (v) => (v ? new Intl.DateTimeFormat('en-GB', { day: 'nu
           <h1 class="s-title text-4xl text-noir-900 mt-8">Sign in</h1>
           <p class="text-ink-soft mt-2">Track orders, save addresses and check out faster.</p>
         </div>
-        <div class="rounded-2xl bg-white ring-1 ring-line p-8"><AuthPhoneSignIn ask-name @done="load" /></div>
+        <div class="rounded-2xl bg-white ring-1 ring-line p-8"><AuthPhoneSignIn ask-name @done="signedIn" /></div>
       </div>
 
       <div v-else class="grid lg:grid-cols-[20rem_1fr] gap-10 items-start">

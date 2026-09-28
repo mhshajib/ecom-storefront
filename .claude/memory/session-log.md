@@ -78,3 +78,9 @@
 ## 2026-09-29 — Home page from the builder (part 20)
 
 - `pages/index.vue` renders `/storefront/home` sections with `components/home/*`: Hero (crossfade, Ken Burns, Previous/Next filling line), Split, Brands (logo tiles marquee), Combos (figures + autoplay carousel), Products (5-up grid), Cards (her/him/unisex with a wide last card, 2×2 seasons, 3 styles), Curated (arched picture carousel), Stats (live figures + promise cards), Testimonials (quote + avatar picker with progress), Faq (animated accordion). Old HeroSection/CategoryShowcase/OfferBand/PromiseStrip/FaqSection removed.
+
+## 2026-09-29 — Listing and product page parity, reviews (part 21)
+
+- Listing: quick chips (styles, summer/winter, office/date night; categories first when there are several), two-thumb price slider (`s-range`) + budgets, collapsible `UiFilterGroup`s (first few open, chosen count when closed), sorts Recommended (default) / Top rated, page indicator, sticky scrollable filter panel.
+- Product page: `ProductGallery` (hover zoom, full screen viewer with arrows/Esc), stars + review count linking to `#reviews`, "n of this in your bag", phone buy bar once the add row scrolls away, `ProductReviews` (summary bars, paged list, verified badge, shop reply, write form for verified buyers; signed-out → `/account?next=`). Cards show stars. `ProductStars` draws inline SVG stars (lucide stars are outline only).
+- Account page honours `?next=` after signing in.

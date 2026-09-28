@@ -74,6 +74,12 @@
   .s-kenburns { animation: s-kenburns 14s ease-out both; }
   @keyframes s-kenburns { from { transform: scale(1.08); } to { transform: scale(1); } }
 
+  /* a two-thumb price slider: two range inputs stacked, only their thumbs take the pointer */
+  .s-range { position: absolute; inset: 0; width: 100%; appearance: none; background: transparent; pointer-events: none; }
+  .s-range::-webkit-slider-thumb { appearance: none; pointer-events: auto; width: 18px; height: 18px; border-radius: 9999px; background: theme('colors.cream.DEFAULT'); border: 2px solid theme('colors.noir.800'); cursor: grab; box-shadow: 0 1px 4px rgb(0 0 0 / .2); }
+  .s-range::-moz-range-thumb { pointer-events: auto; width: 16px; height: 16px; border-radius: 9999px; background: theme('colors.cream.DEFAULT'); border: 2px solid theme('colors.noir.800'); cursor: grab; }
+  .s-range::-webkit-slider-runnable-track, .s-range::-moz-range-track { background: transparent; }
+
   /* page to page */
   .page-enter-active, .page-leave-active { transition: opacity .22s ease; }
   .page-enter-from, .page-leave-to { opacity: 0; }

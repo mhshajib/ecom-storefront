@@ -8,11 +8,13 @@ const { data: attributes } = await useAttributes()
 const { data: brands } = await useBrands()
 
 const SORTS = {
+  recommended: { label: 'Recommended', api: 'featured:desc,best_seller:desc' },
   new: { label: 'Newest', api: 'timestamp.created_at:desc' },
   best: { label: 'Best sellers', api: 'best_seller:desc' },
   price_asc: { label: 'Price: low to high', api: 'sale_price:asc' },
   price_desc: { label: 'Price: high to low', api: 'sale_price:desc' },
   name: { label: 'Name A–Z', api: 'title:asc' },
+  rated: { label: 'Top rated', api: 'rating.average:desc,rating.count:desc' },
 }
 const BUDGETS = [[0, 500], [500, 1000], [1000, 2000], [2000, 5000], [5000, null]]
 const PAGE = 24
@@ -29,7 +31,7 @@ const selectedBrands = computed(() => String(q.value.brand || '').split(',').fil
 const selectedFacets = computed(() => Object.fromEntries(Object.entries(q.value)
   .filter(([k]) => k.startsWith('f.')).map(([k, v]) => [k.slice(2), String(v).split(',').filter(Boolean)])))
 const page = computed(() => Math.max(1, Number(q.value.page) || 1))
-const sort = computed(() => (SORTS[q.value.sort] ? q.value.sort : 'new'))
+const sort = computed(() => (SORTS[q.value.sort] ? q.value.sort : 'recommended'))
 
 const apiQuery = computed(() => ({
   page: page.value, limit: PAGE, sort_by: SORTS[sort.value].api,
@@ -79,6 +81,21 @@ const chosen = computed(() => [
   ...selectedBrands.value.map((b) => ({ key: `b-${b}`, label: brands.value.find((x) => x.slug === b)?.name || b, off: () => toggleBrand(b) })),
   ...Object.entries(selectedFacets.value).flatMap(([a, vs]) => vs.map((v) => ({ key: `f-${a}-${v}`, label: valueLabel(attributes.value, a, v), off: () => toggleFacet(a, v) }))),
 ])
+// quick picks above the grid: the styles, two seasons, two occasions
+const quick = computed(() => {
+  const pick = (attr, only) => (attributes.value.find((a) => a.slug === attr)?.values || []).filter((v) => !only || only.includes(v.slug)).map((v) => ({ attr, ...v }))
+  return [...pick('style'), ...pick('season', ['summer', 'winter']), ...pick('occasion', ['office', 'date-night'])]
+})
+// price slider bounds: up to the dearest product, rounded up
+const priceTop = computed(() => Math.max(1000, Math.ceil((counts.value?.max_price || 10000) / 1000) * 1000))
+const slide = reactive({ min: Number(q.value.min) || 0, max: Number(q.value.max) || 0 })
+watch(() => [q.value.min, q.value.max], ([a, b]) => { slide.min = Number(a) || 0; slide.max = Number(b) || 0 })
+let slideTimer
+const onSlide = () => {
+  if (slide.max && slide.min > slide.max) [slide.min, slide.max] = [slide.max, slide.min]
+  clearTimeout(slideTimer)
+  slideTimer = setTimeout(() => set({ min: slide.min || undefined, max: slide.max && slide.max < priceTop.value ? slide.max : undefined }), 350)
+}
 const products = computed(() => data.value?.data || [])
 const total = computed(() => data.value?.pagination?.total || 0)
 const pages = computed(() => Math.max(1, Math.ceil(total.value / PAGE)))
@@ -119,14 +136,20 @@ useSeoMeta({ title: () => heading.value.replace(/[“”]/g, ''), description: (
   <div>
     <UiPageHero :eyebrow="category && sub ? category.name : 'Shop'" :title="heading" :note="pending ? 'Loading…' : `${total} ${total === 1 ? 'product' : 'products'}`" />
 
-    <!-- category chips -->
+    <!-- quick picks (and categories, when there are several) -->
     <div class="border-b border-line bg-cream-deep/60">
-      <div class="s-container py-4 flex gap-2 overflow-x-auto">
-        <button class="s-chip shrink-0" :class="{ 's-chip-on': !category }" @click="set({ category: undefined, sub: undefined })">Everything</button>
-        <button v-for="c in categories" :key="c._id" class="s-chip shrink-0" :class="{ 's-chip-on': category?._id === c._id && !sub }" @click="set({ category: c.slug, sub: undefined })">{{ c.name }}</button>
+      <div class="s-container py-4 flex gap-2 overflow-x-auto s-no-scrollbar">
+        <template v-if="categories.length > 1">
+          <button class="s-chip shrink-0" :class="{ 's-chip-on': !category }" @click="set({ category: undefined, sub: undefined })">Everything</button>
+          <button v-for="c in categories" :key="c._id" class="s-chip shrink-0" :class="{ 's-chip-on': category?._id === c._id && !sub }" @click="set({ category: c.slug, sub: undefined })">{{ c.name }}</button>
+          <span class="w-px bg-line-strong mx-1 shrink-0" />
+        </template>
+        <button v-for="c in quick" :key="`${c.attr}-${c.slug}`" class="s-chip shrink-0" :class="{ 's-chip-on': selectedFacets[c.attr]?.includes(c.slug) }" :aria-pressed="!!selectedFacets[c.attr]?.includes(c.slug)" @click="toggleFacet(c.attr, c.slug)">
+          <Icon v-if="c.icon" :name="c.icon" class="w-4 h-4" />{{ c.label }}
+        </button>
         <template v-if="category?.children?.length">
           <span class="w-px bg-line-strong mx-1 shrink-0" />
-          <button v-for="s in category.children" :key="s._id" class="s-chip shrink-0" :class="{ 's-chip-on': sub?._id === s._id }" @click="set({ sub: s.slug })">{{ s.name }}</button>
+          <button v-for="sc in category.children" :key="sc._id" class="s-chip shrink-0" :class="{ 's-chip-on': sub?._id === sc._id }" @click="set({ sub: sc.slug })">{{ sc.name }}</button>
         </template>
       </div>
     </div>
@@ -138,14 +161,20 @@ useSeoMeta({ title: () => heading.value.replace(/[“”]/g, ''), description: (
           <h2 class="font-display text-2xl text-noir-800">Filters</h2>
           <button class="p-2" aria-label="Close filters" @click="filtersOpen = false"><Icon name="lucide:x" class="w-6 h-6" /></button>
         </div>
-        <div class="rounded-2xl bg-white ring-1 ring-line p-6 space-y-8 lg:sticky lg:top-28">
+        <div class="rounded-2xl bg-white ring-1 ring-line p-6 space-y-5 lg:sticky lg:top-28 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto s-no-scrollbar" data-lenis-prevent>
           <div class="flex items-center justify-between">
             <h2 class="font-display text-xl text-noir-800 hidden lg:block">Filters</h2>
             <button v-if="activeCount" class="text-xs font-semibold text-sale" @click="clearAll">Clear all</button>
           </div>
 
-          <fieldset>
-            <legend class="font-display text-lg text-noir-800 mb-3">Price</legend>
+          <UiFilterGroup title="Price" :chosen="q.min || q.max ? 1 : 0">
+            <div class="relative h-6 mb-3" aria-hidden="false">
+              <span class="absolute top-1/2 inset-x-0 h-1 -translate-y-1/2 rounded-full bg-line" />
+              <span class="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-noir-800" :style="{ left: `${(slide.min / priceTop) * 100}%`, right: `${100 - ((slide.max || priceTop) / priceTop) * 100}%` }" />
+              <input v-model.number="slide.min" type="range" min="0" :max="priceTop" step="100" class="s-range" aria-label="Lowest price" @input="onSlide">
+              <input :value="slide.max || priceTop" type="range" min="0" :max="priceTop" step="100" class="s-range" aria-label="Highest price" @input="slide.max = Number($event.target.value); onSlide()">
+            </div>
+            <p class="flex justify-between text-xs text-ink-faint tabular-nums mb-3"><span>{{ money(slide.min) }}</span><span>{{ slide.max && slide.max < priceTop ? money(slide.max) : `${money(priceTop)}+` }}</span></p>
             <form class="flex items-center gap-2" @submit.prevent="applyPrice">
               <input v-model="minDraft" type="number" min="0" class="s-input !px-3 !py-2 !rounded-lg" placeholder="৳ Min" aria-label="Minimum price">
               <span class="text-ink-faint">–</span>
@@ -157,7 +186,7 @@ useSeoMeta({ title: () => heading.value.replace(/[“”]/g, ''), description: (
                 {{ b[1] == null ? `${money(b[0])}+` : b[0] ? `${money(b[0])}–${money(b[1])}` : `Under ${money(b[1])}` }}
               </button>
             </div>
-          </fieldset>
+                    </UiFilterGroup>
 
           <fieldset>
             <legend class="sr-only">Offers</legend>
@@ -167,8 +196,7 @@ useSeoMeta({ title: () => heading.value.replace(/[“”]/g, ''), description: (
             </label>
           </fieldset>
 
-          <fieldset v-if="brandChoices.length">
-            <legend class="font-display text-lg text-noir-800 mb-3">Brand</legend>
+          <UiFilterGroup v-if="brandChoices.length" title="Brand" :chosen="selectedBrands.length">
             <input v-if="brandChoices.length > LONG" v-model="finder.brand" class="s-input !px-3 !py-2 !rounded-lg mb-3 text-sm" placeholder="Search brands" aria-label="Search brands">
             <ul class="space-y-1.5 max-h-72 overflow-y-auto pr-1">
               <li v-for="b in visibleValues('brand', brandChoices, (x) => brandCount(x._id))" :key="b._id">
@@ -179,10 +207,9 @@ useSeoMeta({ title: () => heading.value.replace(/[“”]/g, ''), description: (
               </li>
             </ul>
             <button v-if="brandChoices.length > LONG && !finder.brand" class="text-xs font-semibold text-noir-800 mt-2 underline" @click="expanded.brand = !expanded.brand">{{ expanded.brand ? 'Show fewer' : `All ${brandChoices.length} brands` }}</button>
-          </fieldset>
+          </UiFilterGroup>
 
-          <fieldset v-for="a in filterAttrs" :key="a.slug">
-            <legend class="font-display text-lg text-noir-800 mb-3">{{ a.name }}</legend>
+          <UiFilterGroup v-for="(a, ai) in filterAttrs" :key="a.slug" :title="a.name" :open="ai < 3" :chosen="selectedFacets[a.slug]?.length || 0">
             <input v-if="a.values.length > LONG" v-model="finder[a.slug]" class="s-input !px-3 !py-2 !rounded-lg mb-3 text-sm" :placeholder="`Search ${a.name.toLowerCase()}`" :aria-label="`Search ${a.name.toLowerCase()}`">
             <div class="flex flex-wrap gap-2">
               <button
@@ -193,10 +220,9 @@ useSeoMeta({ title: () => heading.value.replace(/[“”]/g, ''), description: (
               </button>
             </div>
             <button v-if="a.values.length > LONG && !finder[a.slug]" class="text-xs font-semibold text-noir-800 mt-2 underline" @click="expanded[a.slug] = !expanded[a.slug]">{{ expanded[a.slug] ? 'Show fewer' : `All ${a.values.length}` }}</button>
-          </fieldset>
+          </UiFilterGroup>
 
-          <fieldset v-for="f in optionFilters" :key="f.group">
-            <legend class="font-display text-lg text-noir-800 mb-3">{{ f.group }}</legend>
+          <UiFilterGroup v-for="f in optionFilters" :key="f.group" :title="f.group" :open="false" :chosen="selectedOptions[f.group]?.length || 0">
             <div class="flex flex-wrap gap-2">
               <button
                 v-for="v in f.values" :key="v" class="s-chip !py-1.5" :class="{ 's-chip-on': selectedOptions[f.group]?.includes(v) }"
@@ -207,7 +233,7 @@ useSeoMeta({ title: () => heading.value.replace(/[“”]/g, ''), description: (
                 {{ v }}
               </button>
             </div>
-          </fieldset>
+          </UiFilterGroup>
 
         </div>
         <button class="s-btn-dark w-full mt-6 lg:hidden" @click="filtersOpen = false">Show {{ total }} products</button>
@@ -216,6 +242,7 @@ useSeoMeta({ title: () => heading.value.replace(/[“”]/g, ''), description: (
       <div>
         <div class="flex items-center justify-between gap-3 mb-8">
           <button class="lg:hidden s-chip" @click="filtersOpen = true"><Icon name="lucide:sliders-horizontal" class="w-4 h-4" /> Filters<span v-if="activeCount" class="rounded-full bg-noir-800 text-cream text-xs px-1.5">{{ activeCount }}</span></button>
+          <span v-if="pages > 1" class="hidden sm:inline text-sm text-ink-faint tabular-nums">Page {{ page }} of {{ pages }}</span>
           <label class="ml-auto flex items-center gap-2 text-sm">
             <span class="text-ink-soft hidden sm:inline">Sort by</span>
             <select :value="sort" class="s-input !w-auto !py-2 !pr-10" @change="set({ sort: $event.target.value })">

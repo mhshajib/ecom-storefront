@@ -30,6 +30,16 @@ watch(() => variant.value?._id, () => { active.value = 0 })
 const inStock = computed(() => (variant.value?.online_stock || 0) > 0)
 const price = computed(() => (variant.value ? { min: variant.value.sale_price, was: variant.value.original_price > variant.value.sale_price ? variant.value.original_price : 0 } : priceOf(p.value)))
 const qty = ref(1)
+const inBag = computed(() => cart.lines.value.find((l) => l.variant_id === variant.value?._id)?.qty || 0)
+// phones: a buy bar sticks to the bottom once the add-to-bag row scrolls away
+const buyRow = ref(null)
+const stickyBuy = ref(false)
+onMounted(() => {
+  if (!buyRow.value || typeof IntersectionObserver === 'undefined') return
+  const io = new IntersectionObserver(([e]) => { stickyBuy.value = !e.isIntersecting && e.boundingClientRect.top < 0 })
+  io.observe(buyRow.value)
+  onBeforeUnmount(() => io.disconnect())
+})
 watch(variant, () => { qty.value = 1 })
 const addToBag = () => {
   if (!variant.value || !inStock.value) return
@@ -104,15 +114,7 @@ useHead({
     <section class="s-container py-8 grid lg:grid-cols-2 gap-10 lg:gap-16">
       <!-- gallery -->
       <div class="lg:sticky lg:top-28 self-start">
-        <div class="relative aspect-square rounded-2xl overflow-hidden bg-white ring-1 ring-line">
-          <img v-if="pics[active]" :src="pics[active]" :alt="p.title" class="w-full h-full object-cover">
-          <span v-if="discountOf(p)" class="absolute left-4 top-4 rounded-full bg-sale text-white text-xs font-bold px-3 py-1">−{{ discountOf(p) }}%</span>
-        </div>
-        <div v-if="pics.length > 1" class="flex gap-3 mt-4 overflow-x-auto">
-          <button v-for="(img, i) in pics" :key="img" class="w-20 h-20 shrink-0 rounded-xl overflow-hidden ring-2 transition" :class="active === i ? 'ring-noir-800' : 'ring-transparent opacity-70 hover:opacity-100'" :aria-label="`Image ${i + 1}`" @click="active = i">
-            <img :src="img" alt="" class="w-full h-full object-cover" loading="lazy">
-          </button>
-        </div>
+        <ProductGallery v-model="active" :pics="pics" :title="p.title" :badge="discountOf(p) ? `−${discountOf(p)}%` : ''" />
       </div>
 
       <!-- details -->
@@ -124,6 +126,7 @@ useHead({
           <template v-if="concentration"><span class="text-gold">•</span><NuxtLink :to="`/products?f.concentration=${concentration.slug}`" class="hover:text-noir-800">{{ concentration.label }}</NuxtLink></template>
         </p>
         <h1 class="s-title text-4xl sm:text-5xl text-noir-800 mt-2">{{ p.title }}</h1>
+        <a v-if="p.rating?.count" href="#reviews" class="inline-flex items-center gap-2 mt-3 text-sm text-ink-soft hover:text-noir-800"><ProductStars :value="p.rating.average" /> {{ p.rating.average.toFixed(1) }} · {{ p.rating.count }} {{ p.rating.count === 1 ? 'review' : 'reviews' }}</a>
         <div v-if="limited || p.featured" class="flex gap-2 mt-3">
           <span v-if="limited" class="rounded-full bg-noir-800 text-gold-light text-[0.7rem] font-semibold tracking-wide uppercase px-3 py-1">Limited edition</span>
           <span v-if="p.featured" class="rounded-full bg-gold/15 text-gold-dark text-[0.7rem] font-semibold tracking-wide uppercase px-3 py-1">Featured</span>
@@ -168,7 +171,14 @@ useHead({
           <template v-else>In stock, ready to ship</template>
         </p>
 
-        <div class="mt-6 flex gap-3">
+        <ClientOnly>
+          <p v-if="inBag" class="mt-4 flex items-center gap-2 rounded-xl bg-gold/10 ring-1 ring-gold/30 px-4 py-2.5 text-sm text-noir-800">
+            <Icon name="lucide:shopping-bag" class="w-4 h-4 text-gold-dark" /> {{ inBag }} of this in your bag
+            <button class="ml-auto text-xs font-semibold underline" @click="cart.open.value = true">View bag</button>
+          </p>
+        </ClientOnly>
+
+        <div ref="buyRow" class="mt-6 flex gap-3">
           <div class="inline-flex items-center rounded-full border border-line-strong bg-white">
             <button class="p-3.5" aria-label="One less" :disabled="qty <= 1" @click="qty--"><Icon name="lucide:minus" class="w-4 h-4" /></button>
             <span class="w-8 text-center tabular-nums" aria-live="polite">{{ qty }}</span>
@@ -261,6 +271,8 @@ useHead({
       </div>
     </section>
 
+    <ProductReviews :product-id="p._id" />
+
     <section v-if="fromBrand.length" class="s-container py-16">
       <UiSectionHeading eyebrow="The house" :title="`More from`" :highlight="p.brand.name" :to="`/products?brand=${p.brand.slug}`" />
       <ProductGrid class="mt-10" :products="fromBrand" />
@@ -270,5 +282,12 @@ useHead({
       <UiSectionHeading eyebrow="You may also like" title="Smells a bit" highlight="like this" :to="p.facets?.family?.[0] ? `/products?f.family=${p.facets.family[0]}` : '/products'" />
       <ProductGrid class="mt-10" :products="related" />
     </section>
+    <!-- phones: buy bar -->
+    <Transition enter-from-class="translate-y-full" enter-active-class="transition duration-300" leave-to-class="translate-y-full" leave-active-class="transition duration-200">
+      <div v-if="stickyBuy" class="lg:hidden fixed inset-x-0 bottom-0 z-30 bg-noir-900 text-cream px-4 py-3 flex items-center gap-3 shadow-lift">
+        <span class="min-w-0 flex-1"><span class="block text-sm truncate">{{ p.title }}</span><span class="block text-xs text-gold-light tabular-nums">{{ money(price.min) }}<template v-if="variant"> · {{ Object.values(variant.attributes || {}).join(' ') }}</template></span></span>
+        <button class="s-btn-gold !py-2.5 !px-5" :disabled="!inStock" @click="addToBag">{{ inStock ? 'Add to bag' : 'Sold out' }}</button>
+      </div>
+    </Transition>
   </div>
 </template>
