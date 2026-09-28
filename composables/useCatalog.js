@@ -69,3 +69,19 @@ export const comboSaving = (p) => {
 export function useMenu() {
   return useAsyncData('menu', async () => (await api('/storefront/menu')).data || { items: [], discover: [] }, { default: () => ({ items: [], discover: [] }) })
 }
+
+/** The shop's details (admin → Storefront → Shop details), falling back to app.config before the API answers. */
+export function useShop() {
+  const { store, announcements } = useAppConfig()
+  const fallback = { ...store, announcements, payment_methods: ['Cash on delivery', 'bKash'], social: store.social || {}, gift_box: { max_items: 2, includes: [] } }
+  const { data } = useNuxtData('shop') // fetched once, awaited, in app.vue (loadShop)
+  return computed(() => ({ ...fallback, ...(data.value || {}), social: { ...(data.value?.social || fallback.social) } }))
+}
+
+/** Content pages linked in the footer. */
+export function useFooterPages() {
+  return useAsyncData('footer-pages', async () => ((await api('/storefront/pages')).data || []).filter((p) => p.footer), { default: () => [] })
+}
+
+/** Fetch the shop details before anything renders (app.vue awaits it), so server and browser agree. */
+export const loadShop = () => useAsyncData('shop', async () => (await api('/storefront/info').catch(() => ({}))).data || {}, { default: () => ({}) })

@@ -1,6 +1,8 @@
 <script setup>
-const { store } = useAppConfig()
+const store = useShop()
 const { data: categories } = await useCategories()
+const { data: pages } = await useFooterPages()
+const SOCIAL = { facebook: 'lucide:facebook', instagram: 'lucide:instagram', youtube: 'lucide:youtube', tiktok: 'lucide:music-2', x: 'lucide:twitter', linkedin: 'lucide:linkedin' }
 const email = ref('')
 const joined = ref(false)
 const join = () => { if (email.value.trim()) joined.value = true }
@@ -30,8 +32,9 @@ const year = new Date().getFullYear()
           <LayoutLogo light />
           <p class="text-sm mt-5 max-w-xs leading-relaxed">{{ store.description }}</p>
           <div class="flex gap-3 mt-6">
-            <a v-if="store.social.facebook" :href="store.social.facebook" class="p-2 rounded-full ring-1 ring-white/20 hover:text-gold" aria-label="Facebook"><Icon name="lucide:facebook" class="w-4 h-4" /></a>
-            <a v-if="store.social.instagram" :href="store.social.instagram" class="p-2 rounded-full ring-1 ring-white/20 hover:text-gold" aria-label="Instagram"><Icon name="lucide:instagram" class="w-4 h-4" /></a>
+            <template v-for="(icon, key) in SOCIAL" :key="key">
+              <a v-if="store.social[key]" :href="store.social[key]" target="_blank" rel="noopener" class="p-2 rounded-full ring-1 ring-white/20 hover:text-gold hover:ring-gold/50 transition" :aria-label="key"><Icon :name="icon" class="w-4 h-4" /></a>
+            </template>
           </div>
         </div>
         <div>
@@ -39,15 +42,16 @@ const year = new Date().getFullYear()
           <ul class="space-y-2.5 text-sm">
             <li v-for="c in categories.slice(0, 5)" :key="c._id"><NuxtLink :to="`/products?category=${c.slug}`" class="hover:text-gold">{{ c.name }}</NuxtLink></li>
             <li><NuxtLink to="/products?on_sale=true" class="hover:text-gold">Offers</NuxtLink></li>
+            <li><NuxtLink to="/combos" class="hover:text-gold">Combos</NuxtLink></li>
+            <li><NuxtLink to="/gift-box" class="hover:text-gold">Gift box</NuxtLink></li>
+            <li><NuxtLink to="/brands" class="hover:text-gold">Brands</NuxtLink></li>
           </ul>
         </div>
         <div>
           <h3 class="s-eyebrow text-gold mb-4">Help</h3>
           <ul class="space-y-2.5 text-sm">
-            <li><NuxtLink to="/pages/delivery" class="hover:text-gold">Delivery</NuxtLink></li>
-            <li><NuxtLink to="/pages/returns" class="hover:text-gold">Returns &amp; refunds</NuxtLink></li>
-            <li><NuxtLink to="/pages/terms" class="hover:text-gold">Terms &amp; conditions</NuxtLink></li>
-            <li><NuxtLink to="/pages/privacy" class="hover:text-gold">Privacy policy</NuxtLink></li>
+            <li v-for="p in pages" :key="p.slug"><NuxtLink :to="`/pages/${p.slug}`" class="hover:text-gold">{{ p.title }}</NuxtLink></li>
+            <li><NuxtLink to="/contact" class="hover:text-gold">Contact us</NuxtLink></li>
           </ul>
         </div>
         <div>
@@ -57,13 +61,20 @@ const year = new Date().getFullYear()
             <li><a :href="`tel:${store.phone.replace(/[^+\\d]/g, '')}`" class="hover:text-gold">{{ store.phone }}</a></li>
             <li><a :href="`mailto:${store.email}`" class="hover:text-gold">{{ store.email }}</a></li>
             <li class="text-cream/60">{{ store.address }}</li>
+            <li v-if="store.hours" class="text-cream/60">{{ store.hours }}</li>
           </ul>
         </div>
       </div>
       <div class="border-t border-white/10">
         <div class="s-container py-6 flex flex-col sm:flex-row gap-3 items-center justify-between text-xs text-cream/50">
-          <p>© {{ year }} {{ store.name }}. All rights reserved.</p>
-          <p class="flex items-center gap-2"><Icon name="lucide:shield-check" class="w-4 h-4" /> Secure checkout · Cash on delivery · bKash</p>
+          <div class="text-center sm:text-left">
+            <p>© {{ year }} {{ store.name }}. All rights reserved.</p>
+            <p v-if="store.trade_licence || store.bin" class="mt-1">{{ [store.trade_licence && `Trade licence ${store.trade_licence}`, store.bin && `BIN ${store.bin}`].filter(Boolean).join(' · ') }}</p>
+          </div>
+          <div class="flex flex-wrap items-center justify-center gap-2">
+            <span class="flex items-center gap-1.5 mr-1"><Icon name="lucide:shield-check" class="w-4 h-4" /> Pay with</span>
+            <span v-for="m in store.payment_methods" :key="m" class="rounded-md bg-white/10 px-2.5 py-1 text-cream/80">{{ m }}</span>
+          </div>
         </div>
       </div>
     </div>

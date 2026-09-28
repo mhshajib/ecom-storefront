@@ -84,3 +84,9 @@
 - Listing: quick chips (styles, summer/winter, office/date night; categories first when there are several), two-thumb price slider (`s-range`) + budgets, collapsible `UiFilterGroup`s (first few open, chosen count when closed), sorts Recommended (default) / Top rated, page indicator, sticky scrollable filter panel.
 - Product page: `ProductGallery` (hover zoom, full screen viewer with arrows/Esc), stars + review count linking to `#reviews`, "n of this in your bag", phone buy bar once the add row scrolls away, `ProductReviews` (summary bars, paged list, verified badge, shop reply, write form for verified buyers; signed-out → `/account?next=`). Cards show stars. `ProductStars` draws inline SVG stars (lucide stars are outline only).
 - Account page honours `?next=` after signing in.
+
+## 2026-09-29 — Contact, content pages, gift box builder (part 22)
+
+- `loadShop()` awaited in app.vue, `useShop()` reads it (`useNuxtData('shop')`): announcement bar, footer (socials, footer pages, payment methods, licence/BIN, hours), WhatsApp. `/pages/[slug]` renders API Markdown (`utils/markdown.js`: raw HTML escaped, unsafe links dropped) with `.s-prose`; `/about`, `/refund-policy`, `/returns`, `/terms`, `/privacy`, `/delivery` redirect there (definePageMeta redirect: routeRules needed a server restart).
+- `/contact`: ways to reach us, store cards with OpenStreetMap embeds + directions, the home FAQ, CTA. `/gift-box`: select (search, brand, size, max N) → write the card (live preview) → adds picks + the gift box product to the bag with `cart.giftMessage`; checkout sends `gift_message` (editable there too).
+- Gotchas: an un-awaited `useAsyncData` read during SSR gave hydration mismatches; nested `<a>` in `<a>` did too.

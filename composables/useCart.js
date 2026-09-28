@@ -5,6 +5,8 @@ const KEY = 'ecom_bag_v1'
 
 export function useCart() {
   const lines = useState('bag', () => [])
+  // a gift box's card: kept with the bag, sent with the order
+  const giftMessage = useState('bag-gift', () => '')
   const open = useState('bag-open', () => false)
   const loaded = useState('bag-loaded', () => false)
 
@@ -12,6 +14,8 @@ export function useCart() {
     loaded.value = true
     try { lines.value = JSON.parse(localStorage.getItem(KEY) || '[]') } catch { lines.value = [] }
     watch(lines, (v) => { try { localStorage.setItem(KEY, JSON.stringify(v)) } catch { /* private mode */ } }, { deep: true })
+    try { giftMessage.value = localStorage.getItem(`${KEY}_gift`) || '' } catch { /* private mode */ }
+    watch(giftMessage, (v) => { try { v ? localStorage.setItem(`${KEY}_gift`, v) : localStorage.removeItem(`${KEY}_gift`) } catch { /* private mode */ } })
   }
 
   const count = computed(() => lines.value.reduce((n, l) => n + l.qty, 0))
@@ -33,7 +37,7 @@ export function useCart() {
     else l.qty = l.max > 0 ? Math.min(qty, l.max) : qty
   }
   const remove = (variantId) => { lines.value = lines.value.filter((x) => x.variant_id !== variantId) }
-  const clear = () => { lines.value = [] }
+  const clear = () => { lines.value = []; giftMessage.value = '' }
 
-  return { lines, open, count, subtotal, add, setQty, remove, clear }
+  return { lines, open, count, subtotal, add, setQty, remove, clear, giftMessage }
 }

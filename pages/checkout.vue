@@ -142,6 +142,7 @@ const place = async () => {
       customer_phone: (pickup ? '' : selected.value.phone) || localPhone(auth.user.value?.phone),
       customer_email: auth.user.value?.email || '',
       coupon_code: coupon.value?.code || '', gift_card_code: card.value?.code || '', use_store_credit: useCredit.value && fromCredit.value > 0,
+      gift_message: cart.giftMessage.value || '',
     } })).data
     if (order.due_amount <= 0.005) { // paid in full from the gift card / store credit
       cart.clear()
@@ -287,6 +288,13 @@ const place = async () => {
             <input v-model="useCredit" type="checkbox" class="accent-noir-900"> Use my store credit ({{ money(wallet.store_credit) }})
           </label>
         </div>
+        <ClientOnly>
+          <details class="mt-5 text-sm group" :open="!!cart.giftMessage.value">
+            <summary class="cursor-pointer list-none flex items-center gap-2 text-noir-800 font-semibold"><Icon name="lucide:gift" class="w-4 h-4 text-gold-dark" /> {{ cart.giftMessage.value ? 'Gift message' : 'Add a gift message' }} <Icon name="lucide:chevron-down" class="w-4 h-4 ml-auto transition group-open:rotate-180" /></summary>
+            <textarea v-model="cart.giftMessage.value" rows="3" maxlength="300" class="s-input mt-3 !text-sm" placeholder="Printed on the card in the box" aria-label="Gift message" />
+            <p class="text-xs text-ink-faint text-right mt-1 tabular-nums">{{ cart.giftMessage.value.length }}/300</p>
+          </details>
+        </ClientOnly>
         <p v-if="error" class="mt-4 text-sm text-sale" role="alert">{{ error }}</p>
         <button class="s-btn-gold w-full mt-6" :disabled="!priced || placing || pricing" @click="place">
           {{ placing ? 'Placing your order…' : toPay <= 0 || gateway === 'cod' ? 'Place order' : 'Pay and place order' }}

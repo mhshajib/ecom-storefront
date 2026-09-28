@@ -1,4 +1,5 @@
 <script setup>
+await loadShop()
 const { store } = useAppConfig()
 useHead({
   titleTemplate: (t) => (t ? `${t} · ${store.name}` : `${store.name} · ${store.tagline}`),

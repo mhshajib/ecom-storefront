@@ -1,5 +1,6 @@
 <script setup>
-const { announcements } = useAppConfig()
+const shop = useShop()
+const announcements = computed(() => shop.value.announcements || [])
 </script>
 <template>
   <div v-if="announcements.length" class="bg-gold text-noir-900 text-[0.78rem] font-semibold overflow-hidden" role="region" aria-label="Announcements">
