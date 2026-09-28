@@ -12,6 +12,7 @@ Public shop for `../ecom-api` (Nuxt 3, **server rendered** for SEO). Tailwind + 
 
 ## Commands
 
+- `make help` lists everything: `make install`, `make dev`, `make build`, `make start`.
 - `npm install`, `npm run dev` → http://localhost:4000 (API on 8080).
 - `npm run build` then `node .output/server/index.mjs` (set `NUXT_PUBLIC_API_BASE_URL`, `NUXT_PUBLIC_SITE_URL`, `PORT`).
 

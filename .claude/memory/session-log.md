@@ -55,3 +55,8 @@
 - Cards show the brand above the title. Listing: brand + every filterable attribute as filters with live counts (`/products/facets`), searchable long lists (brands, notes), removable chips, heading follows one or two choices ("Eau de Parfum", "Creed · Eau de Parfum"). URL params `brand=`, `f.<attr>=`, `featured=`.
 - Product page: brand • concentration line, limited/featured badges, variant photo + caption per size, About (description + facts), notes pyramid (chips link to `?f.notes=`), performance bars, When to wear (season icons + occasions), More from the brand, related by fragrance family.
 - Helpers in `useCatalog.js`: `useAttributes`, `useBrands`, `valueLabel`, `valuesOf`, `eyebrowOf`, `LONGEVITY`/`PROJECTION`.
+
+## 2026-09-29 — Combos and collections (part 17)
+
+- `/combos` (search, gender chips, sort, paged), `/collections/[slug]` (hero with image/subtitle, paged grid), "Combos" in the header. Cards: combos show "Save ৳X" (`comboSaving`) and "Combo · n scents". Product page for a combo: saving vs one by one, What's inside (links to each item).
+- `Makefile`: install, dev, build, start, preview, clean, reinstall.

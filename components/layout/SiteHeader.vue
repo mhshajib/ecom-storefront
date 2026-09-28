@@ -43,6 +43,7 @@ onMounted(() => {
           </div>
           <NuxtLink to="/products?sort=new" class="hover:text-gold">New in</NuxtLink>
           <NuxtLink to="/products?on_sale=true" class="hover:text-gold">Offers</NuxtLink>
+          <NuxtLink to="/combos" class="hover:text-gold">Combos</NuxtLink>
           <NuxtLink to="/stores" class="hover:text-gold">Our stores</NuxtLink>
         </div>
       </nav>
@@ -120,6 +121,7 @@ onMounted(() => {
             <div class="mt-6 pt-6 border-t border-line space-y-3 text-sm">
               <NuxtLink to="/products?sort=new" class="block">New in</NuxtLink>
               <NuxtLink to="/products?on_sale=true" class="block">Offers</NuxtLink>
+              <NuxtLink to="/combos" class="block">Combos</NuxtLink>
               <NuxtLink to="/stores" class="block">Our stores</NuxtLink>
               <NuxtLink to="/saved" class="block">Saved items</NuxtLink>
               <NuxtLink to="/account" class="s-btn-dark w-full mt-4">Sign in</NuxtLink>

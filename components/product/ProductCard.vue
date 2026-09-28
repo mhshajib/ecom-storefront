@@ -19,12 +19,14 @@ const soldOut = computed(() => (props.product.variants || []).length > 0 && onli
         <img v-if="pics[1]" :src="pics[1]" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover opacity-0 transition duration-700 group-hover:opacity-100">
         <div v-if="!pics[0]" class="absolute inset-0 flex items-center justify-center text-gold-dark"><Icon name="lucide:image" class="w-10 h-10" /></div>
         <div class="absolute left-3 top-3 flex flex-col gap-1.5">
-          <span v-if="off" class="rounded-full bg-sale text-white text-[0.7rem] font-bold px-2.5 py-1">−{{ off }}%</span>
+          <span v-if="comboSaving(product)" class="rounded-full bg-gold-light text-noir-900 text-[0.68rem] font-bold uppercase tracking-wide px-2.5 py-1">Save {{ money(comboSaving(product)) }}</span>
+          <span v-else-if="off" class="rounded-full bg-sale text-white text-[0.7rem] font-bold px-2.5 py-1">−{{ off }}%</span>
           <span v-if="soldOut" class="rounded-full bg-ink/80 text-white text-[0.7rem] font-semibold px-2.5 py-1">Sold out</span>
         </div>
       </div>
       <div class="pt-4 text-center px-2">
-        <p v-if="eyebrowOf(product)" class="s-eyebrow text-ink-faint">{{ eyebrowOf(product) }}</p>
+        <p v-if="product.is_combo" class="s-eyebrow text-gold-dark">Combo · {{ product.variants?.[0]?.bundle?.length || 0 }} scents</p>
+        <p v-else-if="eyebrowOf(product)" class="s-eyebrow text-ink-faint">{{ eyebrowOf(product) }}</p>
         <h3 class="mt-1.5 leading-snug text-[0.98rem] group-hover:text-noir-800">{{ product.title }}</h3>
         <p class="mt-1.5 text-sm tabular-nums">
           <span v-if="price.max > price.min" class="text-ink-faint">From </span>

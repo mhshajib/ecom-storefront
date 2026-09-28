@@ -58,3 +58,9 @@ export const eyebrowOf = (p) => p?.brand?.name || categoryLabel(p)
 // how a fragrance wears (0 = not rated)
 export const LONGEVITY = [null, { label: 'Weak', hint: 'Under 2 hours' }, { label: 'Moderate', hint: '2 to 4 hours' }, { label: 'Long lasting', hint: '4 to 6 hours' }, { label: 'Very long lasting', hint: '6 to 10 hours' }, { label: 'Eternal', hint: '10 hours or more' }]
 export const PROJECTION = [null, { label: 'Intimate', hint: 'Close to the skin' }, { label: 'Moderate', hint: 'Arm’s length' }, { label: 'Strong', hint: 'Noticed across a room' }, { label: 'Enormous', hint: 'Fills the room' }]
+
+/** For a combo: what its contents cost one by one, less its price (the biggest saving of its variants). */
+export const comboSaving = (p) => {
+  if (!p?.is_combo) return 0
+  return Math.max(0, ...(p.variants || []).map((v) => (v.bundle_value || 0) - (v.sale_price || 0)))
+}

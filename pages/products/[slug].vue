@@ -118,7 +118,8 @@ useHead({
       <!-- details -->
       <div>
         <p class="s-eyebrow text-ink-faint flex flex-wrap items-center gap-2">
-          <NuxtLink v-if="p.brand" :to="`/products?brand=${p.brand.slug}`" class="hover:text-noir-800">{{ p.brand.name }}</NuxtLink>
+          <NuxtLink v-if="p.is_combo" to="/combos" class="text-gold-dark hover:text-noir-800">Combo · {{ variant?.bundle?.length || 0 }} scents</NuxtLink>
+          <NuxtLink v-else-if="p.brand" :to="`/products?brand=${p.brand.slug}`" class="hover:text-noir-800">{{ p.brand.name }}</NuxtLink>
           <span v-else-if="categoryLabel(p)">{{ categoryLabel(p) }}</span>
           <template v-if="concentration"><span class="text-gold">•</span><NuxtLink :to="`/products?f.concentration=${concentration.slug}`" class="hover:text-noir-800">{{ concentration.label }}</NuxtLink></template>
         </p>
@@ -134,6 +135,26 @@ useHead({
           <span v-if="price.was" class="rounded-full bg-sale/10 text-sale text-xs font-bold px-2.5 py-1">Save {{ money(price.was - price.min) }}</span>
         </p>
         <p v-if="variant?.caption" class="text-sm text-ink-soft mt-2">{{ variant.caption }}</p>
+        <p v-if="p.is_combo && !price.was && variant?.bundle_value > variant?.sale_price" class="mt-3 inline-flex items-center gap-2 rounded-full bg-gold/15 text-gold-dark text-sm font-semibold px-3.5 py-1.5">
+          <Icon name="lucide:gift" class="w-4 h-4" /> {{ money(variant.bundle_value - variant.sale_price) }} less than buying them one by one ({{ money(variant.bundle_value) }})
+        </p>
+
+        <div v-if="p.is_combo && variant?.bundle?.length" class="mt-8">
+          <h2 class="font-display text-2xl text-noir-800">What's inside</h2>
+          <ul class="mt-4 divide-y divide-line rounded-2xl bg-white ring-1 ring-line">
+            <li v-for="b in variant.bundle" :key="b.variant_id">
+              <NuxtLink :to="b.slug ? `/products/${b.slug}` : '#'" class="flex items-center gap-4 p-4 hover:bg-cream/60 transition">
+                <img v-if="b.thumb" :src="b.thumb" alt="" class="w-14 h-14 rounded-lg object-cover ring-1 ring-line" loading="lazy">
+                <span class="flex-1 min-w-0">
+                  <span class="block text-noir-800 font-medium truncate">{{ b.title }}</span>
+                  <span class="block text-xs text-ink-faint">{{ Object.values(b.attributes || {}).join(' · ') || 'One size' }}</span>
+                </span>
+                <span class="text-sm text-ink-soft tabular-nums">× {{ b.quantity }}</span>
+                <Icon name="lucide:chevron-right" class="w-4 h-4 text-ink-faint" />
+              </NuxtLink>
+            </li>
+          </ul>
+        </div>
 
         <div class="mt-8 space-y-6">
           <ProductOptionPicker v-for="o in options" :key="o.name" v-model="picks[o.name]" :option="o" :available="availableFor(o.name)" />
