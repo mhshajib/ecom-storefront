@@ -41,3 +41,7 @@
 
 - Store stock the storefront shows follows counts made in the admin.
 
+## 2026-09-29 — Suppliers and purchase orders (part 14): nothing changed here
+
+- Purchasing is admin only.
+
