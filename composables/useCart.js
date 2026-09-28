@@ -1,0 +1,37 @@
+// Shopping bag kept in the browser until checkout (the API cart is created at checkout).
+// Line: { variant_id, product_id, slug, title, thumb, attrs, price, was, qty, max }
+
+const KEY = 'ecom_bag_v1'
+
+export function useCart() {
+  const lines = useState('bag', () => [])
+  const open = useState('bag-open', () => false)
+  const loaded = useState('bag-loaded', () => false)
+
+  if (import.meta.client && !loaded.value) {
+    loaded.value = true
+    try { lines.value = JSON.parse(localStorage.getItem(KEY) || '[]') } catch { lines.value = [] }
+    watch(lines, (v) => { try { localStorage.setItem(KEY, JSON.stringify(v)) } catch { /* private mode */ } }, { deep: true })
+  }
+
+  const count = computed(() => lines.value.reduce((n, l) => n + l.qty, 0))
+  const subtotal = computed(() => lines.value.reduce((n, l) => n + l.qty * l.price, 0))
+
+  const add = (line, qty = 1) => {
+    const existing = lines.value.find((l) => l.variant_id === line.variant_id)
+    const cap = (n) => (line.max > 0 ? Math.min(n, line.max) : n)
+    if (existing) existing.qty = cap(existing.qty + qty)
+    else lines.value.push({ ...line, qty: cap(qty) })
+    open.value = true
+  }
+  const setQty = (variantId, qty) => {
+    const l = lines.value.find((x) => x.variant_id === variantId)
+    if (!l) return
+    if (qty <= 0) lines.value = lines.value.filter((x) => x.variant_id !== variantId)
+    else l.qty = l.max > 0 ? Math.min(qty, l.max) : qty
+  }
+  const remove = (variantId) => { lines.value = lines.value.filter((x) => x.variant_id !== variantId) }
+  const clear = () => { lines.value = [] }
+
+  return { lines, open, count, subtotal, add, setQty, remove, clear }
+}

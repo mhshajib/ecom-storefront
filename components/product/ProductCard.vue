@@ -1,0 +1,45 @@
+<script setup>
+// Grid card: image (second image on hover), category eyebrow, title, price; heart saves it.
+const props = defineProps({ product: { type: Object, required: true }, eager: Boolean })
+const saved = useWishlist()
+const price = computed(() => priceOf(props.product))
+const off = computed(() => discountOf(props.product))
+const pics = computed(() => imagesOf(props.product))
+const soldOut = computed(() => (props.product.variants || []).length > 0 && onlineStockOf(props.product) <= 0)
+</script>
+
+<template>
+  <article class="group relative">
+    <NuxtLink :to="productUrl(product)" class="block">
+      <div class="relative aspect-[4/5] overflow-hidden rounded-xl bg-white ring-1 ring-line">
+        <img
+          v-if="pics[0]" :src="pics[0]" :alt="product.title" :loading="eager ? 'eager' : 'lazy'"
+          class="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-[1.04]" :class="{ 'group-hover:opacity-0': pics[1] }"
+        >
+        <img v-if="pics[1]" :src="pics[1]" alt="" loading="lazy" class="absolute inset-0 w-full h-full object-cover opacity-0 transition duration-700 group-hover:opacity-100">
+        <div v-if="!pics[0]" class="absolute inset-0 flex items-center justify-center text-gold-dark"><Icon name="lucide:image" class="w-10 h-10" /></div>
+        <div class="absolute left-3 top-3 flex flex-col gap-1.5">
+          <span v-if="off" class="rounded-full bg-sale text-white text-[0.7rem] font-bold px-2.5 py-1">−{{ off }}%</span>
+          <span v-if="soldOut" class="rounded-full bg-ink/80 text-white text-[0.7rem] font-semibold px-2.5 py-1">Sold out</span>
+        </div>
+      </div>
+      <div class="pt-4 text-center px-2">
+        <p v-if="categoryLabel(product)" class="s-eyebrow text-ink-faint">{{ categoryLabel(product) }}</p>
+        <h3 class="mt-1.5 leading-snug text-[0.98rem] group-hover:text-noir-800">{{ product.title }}</h3>
+        <p class="mt-1.5 text-sm tabular-nums">
+          <span v-if="price.max > price.min" class="text-ink-faint">From </span>
+          <span class="font-semibold text-noir-800">{{ money(price.min) }}</span>
+          <s v-if="price.was" class="ml-1.5 text-ink-faint">{{ money(price.was) }}</s>
+        </p>
+      </div>
+    </NuxtLink>
+    <ClientOnly>
+      <button
+        class="absolute right-3 top-3 w-9 h-9 rounded-full bg-white/90 backdrop-blur flex items-center justify-center shadow-card transition hover:scale-105"
+        :aria-label="saved.has(product._id) ? 'Remove from saved' : 'Save'" :aria-pressed="saved.has(product._id)" @click="saved.toggle(product._id)"
+      >
+        <Icon name="lucide:heart" class="w-4 h-4" :class="saved.has(product._id) ? 'text-sale fill-current' : 'text-ink'" />
+      </button>
+    </ClientOnly>
+  </article>
+</template>
