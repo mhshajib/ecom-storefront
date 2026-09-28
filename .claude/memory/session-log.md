@@ -33,3 +33,7 @@
 - `/stores` (real now): stores from `GET /stores`, hours, phone, click & collect badge, Directions (Google Maps), "Nearest to me" (geolocation + `distanceKm`). Product page `ProductStoreStock`: which pickup stores have the chosen variant.
 - Checkout: Delivery / Collect from a store (stores shown only if they have the whole bag), no address or delivery fee for pickup (the API cart is made without an address), COD reads "Pay when you collect"; order page shows the pickup store, steps Confirmed → Ready to collect → Collected.
 
+## 2026-09-29 — Transfers (part 12): nothing changed here
+
+- Stock moves between locations in the admin; the storefront's store stock (`/stores?variant_id=`) reflects it.
+
