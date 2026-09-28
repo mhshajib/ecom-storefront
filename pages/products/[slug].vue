@@ -115,6 +115,8 @@ useHead({
           </ClientOnly>
         </div>
 
+        <ClientOnly><ProductStoreStock :variant-id="variant?._id" /></ClientOnly>
+
         <ul class="mt-8 grid grid-cols-2 gap-3 text-sm">
           <li class="rounded-xl bg-white ring-1 ring-line p-4 flex gap-3"><Icon name="lucide:truck" class="w-5 h-5 text-noir-800 shrink-0" /> Delivery in 1–4 days</li>
           <li class="rounded-xl bg-white ring-1 ring-line p-4 flex gap-3"><Icon name="lucide:banknote" class="w-5 h-5 text-noir-800 shrink-0" /> Cash on delivery</li>

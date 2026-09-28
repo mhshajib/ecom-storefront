@@ -12,6 +12,23 @@ const addr = reactive({ name: '', phone: '', address_line: '', city: 'Dhaka', zo
 const addrError = ref('')
 const addrFields = ref(null)
 
+// delivery or click & collect
+const fulfilment = ref('delivery')
+const pickupStores = ref([])
+const pickupId = ref('')
+const loadStores = async () => {
+  const ids = cart.lines.value.map((l) => l.variant_id)
+  if (!ids.length) { pickupStores.value = []; return }
+  try {
+    const all = (await api('/stores', { query: { variant_id: ids } })).data || []
+    pickupStores.value = all.filter((s) => s.pickup).map((s) => ({ ...s, hasAll: ids.every((id) => s.stock?.[id] && s.stock[id] !== 'out') }))
+    if (pickupId.value && !pickupStores.value.some((s) => s._id === pickupId.value && s.hasAll)) pickupId.value = ''
+  } catch { pickupStores.value = [] }
+}
+onMounted(loadStores)
+watch(() => cart.lines.value.map((l) => l.variant_id).join(), loadStores)
+const pickupStore = computed(() => pickupStores.value.find((s) => s._id === pickupId.value))
+
 const gateways = ref([])
 const gateway = ref('cod')
 const priced = ref(null) // API cart with delivery fee and total
@@ -59,18 +76,20 @@ const saveAddress = async () => {
 
 // price the bag for the chosen address with an API cart (delivery fee, total)
 const price = async () => {
-  if (!addressId.value || !cart.lines.value.length) { priced.value = null; return }
+  const pickup = fulfilment.value === 'pickup'
+  if ((pickup ? !pickupId.value : !addressId.value) || !cart.lines.value.length) { priced.value = null; return }
   pricing.value = true; error.value = ''
   try {
-    const body = { address_id: addressId.value, items: cart.lines.value.map((l) => ({ product_id: l.product_id, variant_id: l.variant_id, quantity: l.qty })) }
+    const body = { ...(pickup ? {} : { address_id: addressId.value }), items: cart.lines.value.map((l) => ({ product_id: l.product_id, variant_id: l.variant_id, quantity: l.qty })) }
     // reuse the cart once made, so re-pricing doesn't leave a trail of carts behind
     const res = priced.value?.cart_id
       ? await auth.request(`/carts/${priced.value.cart_id}`, { method: 'PUT', body })
       : await auth.request('/carts', { method: 'POST', body })
     priced.value = res.data
+    if (pickup) priced.value = { ...res.data, delivery_fee: 0, total_price: res.data.sales_amount } // collected: no delivery
   } catch (e) { error.value = e.message; priced.value = null } finally { pricing.value = false }
 }
-watch([addressId, () => JSON.stringify(cart.lines.value)], price)
+watch([addressId, fulfilment, pickupId, () => JSON.stringify(cart.lines.value)], price)
 
 // ---- coupon, gift card, store credit ----
 const couponInput = ref('')
@@ -112,12 +131,15 @@ const toPay = computed(() => Math.max(0, r2(orderTotal.value - fromCard.value - 
 
 const selected = computed(() => addresses.value.find((a) => a._id === addressId.value))
 const place = async () => {
-  if (!priced.value || !selected.value) return
+  const pickup = fulfilment.value === 'pickup'
+  if (!priced.value || (pickup ? !pickupStore.value : !selected.value)) return
   placing.value = true; error.value = ''
   try {
     const order = (await auth.request('/orders', { method: 'POST', body: {
-      cart_id: priced.value.cart_id, address_id: addressId.value,
-      customer_name: selected.value.name || auth.user.value?.name || '', customer_phone: selected.value.phone || localPhone(auth.user.value?.phone),
+      cart_id: priced.value.cart_id, address_id: pickup ? '' : addressId.value,
+      fulfilment: fulfilment.value, pickup_location_id: pickup ? pickupId.value : '',
+      customer_name: (pickup ? auth.user.value?.name : selected.value.name) || auth.user.value?.name || 'Customer',
+      customer_phone: (pickup ? '' : selected.value.phone) || localPhone(auth.user.value?.phone),
       customer_email: auth.user.value?.email || '',
       coupon_code: coupon.value?.code || '', gift_card_code: card.value?.code || '', use_store_credit: useCredit.value && fromCredit.value > 0,
     } })).data
@@ -161,8 +183,26 @@ const place = async () => {
 
         <!-- 2. address -->
         <section class="rounded-2xl bg-white ring-1 ring-line p-6 sm:p-8" :class="{ 'opacity-50 pointer-events-none': !auth.signedIn.value }">
-          <h2 class="font-display text-2xl flex items-center gap-3"><span class="w-8 h-8 rounded-full bg-noir-900 text-gold-light text-sm font-sans flex items-center justify-center">2</span> Delivery address</h2>
-          <ClientOnly>
+          <h2 class="font-display text-2xl flex items-center gap-3"><span class="w-8 h-8 rounded-full bg-noir-900 text-gold-light text-sm font-sans flex items-center justify-center">2</span> {{ fulfilment === 'pickup' ? 'Collect from' : 'Delivery address' }}</h2>
+          <div v-if="pickupStores.length" class="mt-5 grid grid-cols-2 gap-2 max-w-md" role="radiogroup" aria-label="How you get it">
+            <button type="button" role="radio" :aria-checked="fulfilment === 'delivery'" class="rounded-xl ring-1 p-3 text-sm text-left" :class="fulfilment === 'delivery' ? 'ring-noir-900 bg-cream' : 'ring-line'" @click="fulfilment = 'delivery'">
+              <Icon name="lucide:truck" class="w-4 h-4" /> <strong>Delivery</strong><span class="block text-ink-soft text-xs">1–4 days</span>
+            </button>
+            <button type="button" role="radio" :aria-checked="fulfilment === 'pickup'" class="rounded-xl ring-1 p-3 text-sm text-left" :class="fulfilment === 'pickup' ? 'ring-noir-900 bg-cream' : 'ring-line'" @click="fulfilment = 'pickup'">
+              <Icon name="lucide:store" class="w-4 h-4" /> <strong>Collect from a store</strong><span class="block text-ink-soft text-xs">Free · we text you when it's ready</span>
+            </button>
+          </div>
+          <div v-if="fulfilment === 'pickup'" class="mt-5 space-y-3">
+            <label v-for="st in pickupStores" :key="st._id" class="flex gap-3 rounded-xl ring-1 p-4" :class="[pickupId === st._id ? 'ring-noir-900 bg-cream' : 'ring-line', st.hasAll ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed']">
+              <input v-model="pickupId" type="radio" :value="st._id" :disabled="!st.hasAll" class="mt-1 accent-noir-900">
+              <span class="text-sm flex-1">
+                <strong>{{ st.name }}</strong><span v-if="!st.hasAll" class="text-sale"> · not everything in your bag is here</span><br>
+                <span class="text-ink-soft">{{ st.address }}</span>
+                <span v-if="st.hours" class="block text-ink-faint text-xs mt-0.5">{{ st.hours }}</span>
+              </span>
+            </label>
+          </div>
+          <ClientOnly v-else>
             <div v-if="addresses.length && !adding" class="mt-6 space-y-3">
               <label v-for="a in addresses" :key="a._id" class="flex gap-3 rounded-xl ring-1 p-4 cursor-pointer" :class="addressId === a._id ? 'ring-noir-900 bg-cream' : 'ring-line'">
                 <input v-model="addressId" type="radio" :value="a._id" class="mt-1 accent-noir-900">
@@ -198,7 +238,7 @@ const place = async () => {
           <div class="mt-6 grid sm:grid-cols-2 gap-3">
             <label v-for="g in gateways" :key="g" class="flex gap-3 rounded-xl ring-1 p-4 cursor-pointer" :class="gateway === g ? 'ring-noir-900 bg-cream' : 'ring-line'">
               <input v-model="gateway" type="radio" :value="g" class="mt-1 accent-noir-900">
-              <span class="text-sm"><strong class="flex items-center gap-2"><Icon :name="GATEWAYS[g]?.icon || 'lucide:wallet'" class="w-4 h-4" />{{ GATEWAYS[g]?.label || g }}</strong><span class="text-ink-soft">{{ GATEWAYS[g]?.hint }}</span></span>
+              <span class="text-sm"><strong class="flex items-center gap-2"><Icon :name="GATEWAYS[g]?.icon || 'lucide:wallet'" class="w-4 h-4" />{{ fulfilment === 'pickup' && g === 'cod' ? 'Pay when you collect' : GATEWAYS[g]?.label || g }}</strong><span class="text-ink-soft">{{ fulfilment === 'pickup' && g === 'cod' ? 'Cash, card or bKash at the store.' : GATEWAYS[g]?.hint }}</span></span>
             </label>
           </div>
         </section>
@@ -217,7 +257,7 @@ const place = async () => {
         <dl class="mt-4 pt-4 border-t border-line space-y-2 text-sm tabular-nums">
           <div class="flex justify-between"><dt class="text-ink-soft">Subtotal</dt><dd>{{ money(priced?.sales_amount ?? cart.subtotal.value) }}</dd></div>
           <div v-if="discount" class="flex justify-between text-gold-deep"><dt>{{ coupon.code }}</dt><dd>−{{ money(discount) }}</dd></div>
-          <div class="flex justify-between"><dt class="text-ink-soft">Delivery</dt><dd>{{ pricing ? '…' : priced ? (coupon?.free_delivery ? 'Free' : money(priced.delivery_fee)) : 'Add an address' }}</dd></div>
+          <div class="flex justify-between"><dt class="text-ink-soft">Delivery</dt><dd>{{ fulfilment === 'pickup' ? 'Free, collect' : pricing ? '…' : priced ? (coupon?.free_delivery ? 'Free' : money(priced.delivery_fee)) : 'Add an address' }}</dd></div>
           <div class="flex justify-between text-base font-semibold pt-2 border-t border-line"><dt>Total</dt><dd>{{ money(orderTotal) }}</dd></div>
           <div v-if="fromCard" class="flex justify-between"><dt class="text-ink-soft">Gift card</dt><dd>−{{ money(fromCard) }}</dd></div>
           <div v-if="fromCredit" class="flex justify-between"><dt class="text-ink-soft">Store credit</dt><dd>−{{ money(fromCredit) }}</dd></div>

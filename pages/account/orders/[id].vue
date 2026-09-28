@@ -52,8 +52,14 @@ const cancelReturn = async (r) => {
 }
 const dateOf = (v) => (v ? new Date(v).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dhaka' }) : '')
 
-const steps = ['PROCESSING', 'ON_SHIPPING', 'DELIVERED']
-const stepIndex = computed(() => steps.indexOf(order.value?.status))
+const pickup = computed(() => order.value?.fulfilment === 'pickup')
+const steps = computed(() => (pickup.value ? ['PROCESSING', 'READY_FOR_PICKUP', 'DELIVERED'] : ['PROCESSING', 'ON_SHIPPING', 'DELIVERED']))
+const stepIndex = computed(() => steps.value.indexOf(order.value?.status))
+const store = ref(null)
+watch(order, async (o) => {
+  if (!o || o.fulfilment !== 'pickup' || !o.location_id) return
+  try { store.value = ((await api('/stores')).data || []).find((s) => s._id === o.location_id) || null } catch { /* just the label */ }
+})
 </script>
 
 <template>
@@ -77,7 +83,7 @@ const stepIndex = computed(() => steps.indexOf(order.value?.status))
         <ol v-if="stepIndex >= 0" class="mt-8 grid grid-cols-3 gap-2">
           <li v-for="(s, i) in steps" :key="s" class="text-center">
             <span class="block h-1.5 rounded-full" :class="i <= stepIndex ? 'bg-gold' : 'bg-line'" />
-            <span class="block text-xs mt-2" :class="i <= stepIndex ? 'text-ink font-semibold' : 'text-ink-faint'">{{ ORDER_STATUS[s].label }}</span>
+            <span class="block text-xs mt-2" :class="i <= stepIndex ? 'text-ink font-semibold' : 'text-ink-faint'">{{ pickup && s === 'DELIVERED' ? 'Collected' : ORDER_STATUS[s].label }}</span>
           </li>
         </ol>
         <p v-if="order.delivery_tracking_link" class="mt-4 text-sm"><a :href="order.delivery_tracking_link" target="_blank" rel="noopener" class="underline">Track your parcel</a></p>
@@ -95,9 +101,15 @@ const stepIndex = computed(() => steps.indexOf(order.value?.status))
               <div class="flex justify-between"><dt class="text-ink-soft">Subtotal</dt><dd>{{ money(order.sales_amount) }}</dd></div>
               <div class="flex justify-between"><dt class="text-ink-soft">Delivery</dt><dd>{{ money(order.delivery_fee) }}</dd></div>
               <div class="flex justify-between font-semibold pt-2 border-t border-line"><dt>Total</dt><dd>{{ money(order.grand_total) }}</dd></div>
-              <div v-if="order.due_amount > 0 && order.status !== 'DELIVERED'" class="flex justify-between"><dt class="text-ink-soft">To pay on delivery</dt><dd>{{ money(order.due_amount) }}</dd></div>
+              <div v-if="order.due_amount > 0 && order.status !== 'DELIVERED'" class="flex justify-between"><dt class="text-ink-soft">{{ pickup ? 'To pay when you collect' : 'To pay on delivery' }}</dt><dd>{{ money(order.due_amount) }}</dd></div>
             </dl>
-            <div class="rounded-2xl bg-white ring-1 ring-line p-5 text-sm">
+            <div v-if="pickup" class="rounded-2xl bg-white ring-1 ring-line p-5 text-sm">
+              <p class="font-semibold">Collect from</p>
+              <p class="text-ink-soft mt-1">{{ store?.name || 'Our store' }}<br>{{ store?.address }}<br><span v-if="store?.hours" class="text-ink-faint">{{ store.hours }}</span></p>
+              <p class="mt-2">{{ order.status === 'READY_FOR_PICKUP' ? 'It’s ready: bring your order number.' : 'We’ll text you when it’s ready.' }}</p>
+              <a v-if="store" :href="mapsLink(store)" target="_blank" rel="noopener" class="underline text-ink-soft mt-2 inline-block">Directions</a>
+            </div>
+            <div v-else class="rounded-2xl bg-white ring-1 ring-line p-5 text-sm">
               <p class="font-semibold">Delivering to</p>
               <p class="text-ink-soft mt-1">{{ order.delivery_address?.name }} · {{ order.delivery_address?.phone }}<br>{{ [order.delivery_address?.address_line, order.delivery_address?.zone, order.delivery_address?.city].filter(Boolean).join(', ') }}</p>
             </div>

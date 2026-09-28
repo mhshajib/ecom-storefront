@@ -13,7 +13,22 @@ export const ORDER_STATUS = {
   PAYMENT_FAILED: { label: 'Payment failed', tone: 'bg-sale/10 text-sale' },
   PROCESSING: { label: 'Confirmed', tone: 'bg-gold/20 text-gold-deep' },
   ON_SHIPPING: { label: 'On the way', tone: 'bg-gold/20 text-gold-deep' },
+  READY_FOR_PICKUP: { label: 'Ready to collect', tone: 'bg-green-100 text-green-800' },
   DELIVERED: { label: 'Delivered', tone: 'bg-green-100 text-green-800' },
   RETURNED: { label: 'Returned', tone: 'bg-sale/10 text-sale' },
   CANCELLED: { label: 'Cancelled', tone: 'bg-cream-deep text-ink-soft' },
+}
+
+// store stock as shoppers see it (from GET /stores?variant_id=)
+export const STORE_STOCK = {
+  in_stock: { label: 'In stock', tone: 'text-green-700' },
+  low: { label: 'Only a few left', tone: 'text-gold-deep' },
+  out: { label: 'Not in stock', tone: 'text-ink-faint' },
+}
+export const mapsLink = (s) => (s.latitude != null ? `https://www.google.com/maps/dir/?api=1&destination=${s.latitude},${s.longitude}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${s.name} ${s.address}`)}`)
+// km between two points
+export function distanceKm(a, b) {
+  const r = (d) => (d * Math.PI) / 180
+  const h = Math.sin(r(b.lat - a.lat) / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lng - a.lng) / 2) ** 2
+  return 12742 * Math.asin(Math.sqrt(h))
 }

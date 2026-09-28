@@ -28,3 +28,8 @@
 
 - Variants can now get auto SKUs and in-store EAN-13 barcodes (prefix 200–299) from the API; the storefront shows neither.
 
+## 2026-09-29 — Store finder and click & collect
+
+- `/stores` (real now): stores from `GET /stores`, hours, phone, click & collect badge, Directions (Google Maps), "Nearest to me" (geolocation + `distanceKm`). Product page `ProductStoreStock`: which pickup stores have the chosen variant.
+- Checkout: Delivery / Collect from a store (stores shown only if they have the whole bag), no address or delivery fee for pickup (the API cart is made without an address), COD reads "Pay when you collect"; order page shows the pickup store, steps Confirmed → Ready to collect → Collected.
+
