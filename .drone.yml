@@ -1,0 +1,48 @@
+kind: pipeline
+type: docker
+name: deploy-prod
+
+clone:
+  depth: 1
+
+steps:
+  - name: build
+    image: node:22-alpine
+    environment:
+      CONSUL: http://192.168.68.117:8500
+    commands:
+      - wget -qO .env "$CONSUL/v1/kv/apps/ecom-storefront/prod/.env?raw"
+      - test -s .env || (echo "ERROR empty or missing .env in consul (apps/ecom-storefront/prod/.env)"; exit 1)
+      - npm ci
+      # server rendered: .output/server is a self-contained node app
+      - npm run build
+      - test -f .output/server/index.mjs || (echo "ERROR build produced no server entry"; exit 1)
+
+  - name: deploy
+    image: alpine:3.20
+    environment:
+      CONSUL: http://192.168.68.117:8500
+      HOST: ci@139.162.8.118
+      APPDIR: /var/www/scentology.bd
+    commands:
+      - apk add --no-cache openssh-client rsync
+      - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+      # same host and ci user as muniif, so the same deploy key
+      - wget -qO ~/.ssh/id_rsa "$CONSUL/v1/kv/apps/muniif-org/prod/deploy_key?raw"
+      - chmod 600 ~/.ssh/id_rsa
+      - test -s ~/.ssh/id_rsa || (echo "ERROR missing deploy key in consul"; exit 1)
+      - ssh-keyscan -H 139.162.8.118 >> ~/.ssh/known_hosts 2>/dev/null
+      - ssh "$HOST" "mkdir -p $APPDIR"
+      # ship to a staging dir, then swap, so supervisor never restarts into a
+      # half copied build. The server process reads .env at start (node --env-file)
+      - rsync -az --delete .output/ "$HOST:$APPDIR/.output.new/"
+      - rsync -az .env "$HOST:$APPDIR/.env.new"
+      - ssh "$HOST" "set -e; cd $APPDIR; mv -f .env.new .env; chmod 600 .env; rm -rf .output.old; [ -d .output ] && mv .output .output.old; mv .output.new .output"
+      - ssh "$HOST" "sudo supervisorctl restart scentology_storefront"
+      - ssh "$HOST" "sleep 6; curl -fsS -o /dev/null http://127.0.0.1:8092/ && echo 'post-deploy health OK'"
+
+trigger:
+  branch:
+    - main
+  event:
+    - push

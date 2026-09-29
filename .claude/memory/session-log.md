@@ -90,3 +90,7 @@
 - `loadShop()` awaited in app.vue, `useShop()` reads it (`useNuxtData('shop')`): announcement bar, footer (socials, footer pages, payment methods, licence/BIN, hours), WhatsApp. `/pages/[slug]` renders API Markdown (`utils/markdown.js`: raw HTML escaped, unsafe links dropped) with `.s-prose`; `/about`, `/refund-policy`, `/returns`, `/terms`, `/privacy`, `/delivery` redirect there (definePageMeta redirect: routeRules needed a server restart).
 - `/contact`: ways to reach us, store cards with OpenStreetMap embeds + directions, the home FAQ, CTA. `/gift-box`: select (search, brand, size, max N) → write the card (live preview) → adds picks + the gift box product to the bag with `cart.giftMessage`; checkout sends `gift_message` (editable there too).
 - Gotchas: an un-awaited `useAsyncData` read during SSR gave hydration mismatches; nested `<a>` in `<a>` did too.
+
+## 2026-09-30 — Production CI/CD
+
+- Added `.drone.yml`: push to `main` deploys to 139.162.8.118 (scentology.bd / control.scentology.bd / api.scentology.bd). See deployment.md.
