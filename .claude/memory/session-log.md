@@ -94,3 +94,4 @@
 ## 2026-09-30 — Production CI/CD
 
 - Added `.drone.yml`: push to `main` deploys to 139.162.8.118 (scentology.bd / control.scentology.bd / api.scentology.bd). See deployment.md.
+- 2026-09-30: customer sign-in is by **email code** now (was phone SMS): `/auth/otp/request|verify` take `email`; code sent with the mailer (Orb in prod). Staff emails are refused there. Customers found/created by email; phone comes from the delivery address (or the pickup phone field on the storefront).

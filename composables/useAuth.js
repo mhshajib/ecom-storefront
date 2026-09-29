@@ -1,4 +1,4 @@
-// Customer session: token + user in cookies (readable during SSR for the header), phone OTP sign-in.
+// Customer session: token + user in cookies (readable during SSR for the header), email code sign-in.
 const TOKEN = 'sc_token'
 const USER = 'sc_user'
 
@@ -27,9 +27,9 @@ export function useAuth() {
     }
   }
 
-  const requestCode = (phone) => api('/auth/otp/request', { method: 'POST', body: { phone } }).catch((e) => { throw friendly(e) })
-  const verifyCode = async (phone, code, name = '') => {
-    const res = await api('/auth/otp/verify', { method: 'POST', body: { phone, code, name } }).catch((e) => { throw friendly(e) })
+  const requestCode = (email) => api('/auth/otp/request', { method: 'POST', body: { email } }).catch((e) => { throw friendly(e) })
+  const verifyCode = async (email, code, name = '') => {
+    const res = await api('/auth/otp/verify', { method: 'POST', body: { email, code, name } }).catch((e) => { throw friendly(e) })
     token.value = res.data.token
     user.value = res.data.user
     return res.data

@@ -70,7 +70,7 @@ watch(order, async (o) => {
         <div v-if="placed" class="s-band rounded-2xl p-8 sm:p-10 text-center mb-10">
           <Icon name="lucide:circle-check" class="w-12 h-12 mx-auto text-gold" />
           <h1 class="s-title text-4xl mt-4">Thank you, <em class="s-gold-text">order placed</em></h1>
-          <p class="text-cream/70 mt-3">Order {{ order.invoice_id }}. We'll text you when it ships.</p>
+          <p class="text-cream/70 mt-3">Order {{ order.invoice_id }}. We'll let you know when it ships.</p>
         </div>
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -106,7 +106,7 @@ watch(order, async (o) => {
             <div v-if="pickup" class="rounded-2xl bg-white ring-1 ring-line p-5 text-sm">
               <p class="font-semibold">Collect from</p>
               <p class="text-ink-soft mt-1">{{ store?.name || 'Our store' }}<br>{{ store?.address }}<br><span v-if="store?.hours" class="text-ink-faint">{{ store.hours }}</span></p>
-              <p class="mt-2">{{ order.status === 'READY_FOR_PICKUP' ? 'It’s ready: bring your order number.' : 'We’ll text you when it’s ready.' }}</p>
+              <p class="mt-2">{{ order.status === 'READY_FOR_PICKUP' ? 'It’s ready: bring your order number.' : 'We’ll let you know when it’s ready.' }}</p>
               <a v-if="store" :href="mapsLink(store)" target="_blank" rel="noopener" class="underline text-ink-soft mt-2 inline-block">Directions</a>
             </div>
             <div v-else class="rounded-2xl bg-white ring-1 ring-line p-5 text-sm">

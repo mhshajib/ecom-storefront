@@ -1,11 +1,11 @@
 <script setup>
-// Two steps: phone number → 6 digit code. Emits "done" once signed in.
+// Two steps: email → 6 digit code from the inbox. Emits "done" once signed in.
 const props = defineProps({ askName: Boolean, compact: Boolean })
 const emit = defineEmits(['done'])
 const auth = useAuth()
 
-const step = ref('phone')
-const phone = ref('')
+const step = ref('email')
+const email = ref('')
 const name = ref('')
 const code = ref('')
 const busy = ref(false)
@@ -19,7 +19,7 @@ onBeforeUnmount(() => clearInterval(timer))
 const send = async () => {
   busy.value = true; error.value = ''
   try {
-    const res = await auth.requestCode(phone.value)
+    const res = await auth.requestCode(email.value)
     devCode.value = res.data.dev_code || ''
     resendIn.value = res.data.resend_in || 60
     tick()
@@ -30,7 +30,7 @@ const send = async () => {
 const verify = async () => {
   busy.value = true; error.value = ''
   try {
-    const data = await auth.verifyCode(phone.value, code.value, name.value)
+    const data = await auth.verifyCode(email.value, code.value, name.value)
     emit('done', data)
   } catch (e) { error.value = e.message } finally { busy.value = false }
 }
@@ -38,26 +38,23 @@ const verify = async () => {
 
 <template>
   <div>
-    <form v-if="step === 'phone'" class="space-y-4" @submit.prevent="send">
+    <form v-if="step === 'email'" class="space-y-4" @submit.prevent="send">
       <div v-if="askName">
         <label for="si-name" class="block text-sm font-medium mb-1.5">Your name</label>
         <input id="si-name" v-model="name" class="s-input" autocomplete="name" placeholder="e.g. Nusrat Jahan">
       </div>
       <div>
-        <label for="si-phone" class="block text-sm font-medium mb-1.5">Mobile number</label>
-        <div class="relative">
-          <span class="absolute left-5 top-1/2 -translate-y-1/2 text-sm text-ink-soft">+88</span>
-          <input id="si-phone" v-model="phone" type="tel" inputmode="tel" required autocomplete="tel" class="s-input !pl-14" placeholder="01XXXXXXXXX">
-        </div>
-        <p class="text-xs text-ink-faint mt-1.5">We'll text you a 6 digit code. No password needed.</p>
+        <label for="si-email" class="block text-sm font-medium mb-1.5">Email</label>
+        <input id="si-email" v-model="email" type="email" inputmode="email" required autocomplete="email" autocapitalize="off" spellcheck="false" class="s-input" placeholder="you@example.com">
+        <p class="text-xs text-ink-faint mt-1.5">We'll email you a 6 digit code. No password needed.</p>
       </div>
       <p v-if="error" class="text-sm text-sale" role="alert">{{ error }}</p>
       <button class="s-btn-dark w-full" :disabled="busy">{{ busy ? 'Sending…' : 'Send code' }}</button>
     </form>
 
     <form v-else class="space-y-4" @submit.prevent="verify">
-      <p class="text-sm text-ink-soft">Enter the code sent to <strong class="text-ink">{{ phone }}</strong>.
-        <button type="button" class="text-noir-900 underline" @click="step = 'phone'; code = ''">Change</button>
+      <p class="text-sm text-ink-soft">Enter the code we emailed to <strong class="text-ink break-all">{{ email }}</strong>. Check spam if it isn't there in a minute.
+        <button type="button" class="text-noir-900 underline" @click="step = 'email'; code = ''">Change</button>
       </p>
       <p v-if="devCode" class="text-xs rounded-lg bg-gold/15 text-gold-deep px-3 py-2">Test mode: your code is <strong class="tabular-nums">{{ devCode }}</strong></p>
       <div>

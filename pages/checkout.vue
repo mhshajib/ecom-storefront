@@ -1,5 +1,5 @@
 <script setup>
-// 1. sign in by phone  2. delivery address  3. review (API cart prices it) and pay.
+// 1. sign in by email  2. delivery address  3. review (API cart prices it) and pay.
 useSeoMeta({ title: 'Checkout', robots: 'noindex' })
 const auth = useAuth()
 const cart = useCart()
@@ -42,9 +42,12 @@ const loadAddresses = async () => {
   addresses.value = res.data || []
   const def = addresses.value.find((a) => a.default) || addresses.value[0]
   addressId.value = def?._id || ''
+  if (!pickupPhone.value) pickupPhone.value = def?.phone || localPhone(auth.user.value?.phone)
   adding.value = !addresses.value.length
   if (adding.value) Object.assign(addr, { name: auth.user.value?.name || '', phone: localPhone(auth.user.value?.phone) })
 }
+// store collection has no address, so it asks for the phone the store calls or texts
+const pickupPhone = ref('')
 const localPhone = (p) => (p && p.startsWith('880') ? `0${p.slice(3)}` : p || '')
 // a new address starts from the account's name and phone
 watch(() => auth.user.value, (u) => {
@@ -133,13 +136,14 @@ const selected = computed(() => addresses.value.find((a) => a._id === addressId.
 const place = async () => {
   const pickup = fulfilment.value === 'pickup'
   if (!priced.value || (pickup ? !pickupStore.value : !selected.value)) return
+  if (pickup && !pickupPhone.value.trim()) { error.value = 'Add a phone number so the store can reach you.'; return }
   placing.value = true; error.value = ''
   try {
     const order = (await auth.request('/orders', { method: 'POST', body: {
       cart_id: priced.value.cart_id, address_id: pickup ? '' : addressId.value,
       fulfilment: fulfilment.value, pickup_location_id: pickup ? pickupId.value : '',
       customer_name: (pickup ? auth.user.value?.name : selected.value.name) || auth.user.value?.name || 'Customer',
-      customer_phone: (pickup ? '' : selected.value.phone) || localPhone(auth.user.value?.phone),
+      customer_phone: (pickup ? pickupPhone.value.trim() : selected.value.phone) || localPhone(auth.user.value?.phone),
       customer_email: auth.user.value?.email || '',
       coupon_code: coupon.value?.code || '', gift_card_code: card.value?.code || '', use_store_credit: useCredit.value && fromCredit.value > 0,
       gift_message: cart.giftMessage.value || '',
@@ -175,10 +179,10 @@ const place = async () => {
           <h2 class="font-display text-2xl flex items-center gap-3"><span class="w-8 h-8 rounded-full bg-noir-900 text-gold-light text-sm font-sans flex items-center justify-center">1</span> Your details</h2>
           <ClientOnly>
             <div v-if="auth.signedIn.value" class="mt-4 flex items-center justify-between text-sm">
-              <p><span class="text-ink-soft">Signed in as</span> <strong>{{ auth.user.value?.name || localPhone(auth.user.value?.phone) }}</strong> <span class="text-ink-faint">{{ localPhone(auth.user.value?.phone) }}</span></p>
+              <p><span class="text-ink-soft">Signed in as</span> <strong>{{ auth.user.value?.name || auth.user.value?.email }}</strong> <span class="text-ink-faint break-all">{{ auth.user.value?.email || localPhone(auth.user.value?.phone) }}</span></p>
               <button class="text-ink-soft underline" @click="auth.signOut(); addresses = []">Not you?</button>
             </div>
-            <div v-else class="mt-6 max-w-sm"><AuthPhoneSignIn ask-name @done="onSignedIn" /></div>
+            <div v-else class="mt-6 max-w-sm"><AuthEmailSignIn ask-name @done="onSignedIn" /></div>
           </ClientOnly>
         </section>
 
@@ -190,7 +194,7 @@ const place = async () => {
               <Icon name="lucide:truck" class="w-4 h-4" /> <strong>Delivery</strong><span class="block text-ink-soft text-xs">1–4 days</span>
             </button>
             <button type="button" role="radio" :aria-checked="fulfilment === 'pickup'" class="rounded-xl ring-1 p-3 text-sm text-left" :class="fulfilment === 'pickup' ? 'ring-noir-900 bg-cream' : 'ring-line'" @click="fulfilment = 'pickup'">
-              <Icon name="lucide:store" class="w-4 h-4" /> <strong>Collect from a store</strong><span class="block text-ink-soft text-xs">Free · we text you when it's ready</span>
+              <Icon name="lucide:store" class="w-4 h-4" /> <strong>Collect from a store</strong><span class="block text-ink-soft text-xs">Free · we'll tell you when it's ready</span>
             </button>
           </div>
           <div v-if="fulfilment === 'pickup'" class="mt-5 space-y-3">
@@ -202,6 +206,7 @@ const place = async () => {
                 <span v-if="st.hours" class="block text-ink-faint text-xs mt-0.5">{{ st.hours }}</span>
               </span>
             </label>
+            <div class="max-w-xs pt-1"><label class="block text-sm font-medium mb-1.5" for="p-phone">Your phone</label><input id="p-phone" v-model="pickupPhone" required type="tel" inputmode="tel" class="s-input" autocomplete="tel" placeholder="01XXXXXXXXX"></div>
           </div>
           <ClientOnly v-else>
             <div v-if="addresses.length && !adding" class="mt-6 space-y-3">

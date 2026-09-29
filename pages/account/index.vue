@@ -55,14 +55,14 @@ const { date } = { date: (v) => (v ? new Intl.DateTimeFormat('en-GB', { day: 'nu
           <h1 class="s-title text-4xl text-noir-900 mt-8">Sign in</h1>
           <p class="text-ink-soft mt-2">Track orders, save addresses and check out faster.</p>
         </div>
-        <div class="rounded-2xl bg-white ring-1 ring-line p-8"><AuthPhoneSignIn ask-name @done="signedIn" /></div>
+        <div class="rounded-2xl bg-white ring-1 ring-line p-8"><AuthEmailSignIn ask-name @done="signedIn" /></div>
       </div>
 
       <div v-else class="grid lg:grid-cols-[20rem_1fr] gap-10 items-start">
         <aside class="rounded-2xl bg-white ring-1 ring-line p-6">
           <p class="s-eyebrow text-ink-faint">My account</p>
           <h1 class="font-display text-3xl mt-2">{{ auth.user.value?.name || 'Welcome' }}</h1>
-          <p class="text-sm text-ink-soft">{{ localPhone(auth.user.value?.phone) }}</p>
+          <p class="text-sm text-ink-soft break-all">{{ auth.user.value?.email || localPhone(auth.user.value?.phone) }}</p>
           <form class="mt-6 space-y-3" @submit.prevent="saveProfile">
             <div><label class="block text-sm font-medium mb-1.5" for="p-name">Name</label><input id="p-name" v-model="profile.name" required class="s-input"></div>
             <div><label class="block text-sm font-medium mb-1.5" for="p-email">Email <span class="text-ink-faint font-normal">(optional)</span></label><input id="p-email" v-model="profile.email" type="email" class="s-input"></div>
