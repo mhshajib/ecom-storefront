@@ -9,3 +9,4 @@
 - **`v-reveal` hides only below-the-fold elements at mount**; SSR renders everything visible, so content never depends on JS to appear.
 - **Never nest links** (`<a>` inside `<a>`/NuxtLink): the browser splits them and hydration breaks for the whole page.
 - **Shared data every page needs (shop details) is fetched once in app.vue with `await`**; composables read it with `useNuxtData` so server and client render the same.
+- Drone pipes the step script into sh on stdin, so every remote `ssh` step must be `ssh -n`; a plain ssh swallows the rest of the script and a later line runs truncated (`usage: ssh ...`, exit 255).

@@ -32,14 +32,14 @@ steps:
       - chmod 600 ~/.ssh/id_rsa
       - test -s ~/.ssh/id_rsa || (echo "ERROR missing deploy key in consul"; exit 1)
       - ssh-keyscan -H 139.162.8.118 >> ~/.ssh/known_hosts 2>/dev/null
-      - ssh "$HOST" "mkdir -p $APPDIR"
+      - ssh -n "$HOST" "mkdir -p $APPDIR"
       # ship to a staging dir, then swap, so supervisor never restarts into a
       # half copied build. The server process reads .env at start (node --env-file)
       - rsync -az --delete .output/ "$HOST:$APPDIR/.output.new/"
       - rsync -az .env "$HOST:$APPDIR/.env.new"
-      - ssh "$HOST" "set -e; cd $APPDIR; mv -f .env.new .env; chmod 600 .env; rm -rf .output.old; [ -d .output ] && mv .output .output.old; mv .output.new .output"
-      - ssh "$HOST" "sudo supervisorctl restart scentology_storefront"
-      - ssh "$HOST" "sleep 6; curl -fsS -o /dev/null http://127.0.0.1:8092/ && echo 'post-deploy health OK'"
+      - ssh -n "$HOST" "set -e; cd $APPDIR; mv -f .env.new .env; chmod 600 .env; rm -rf .output.old; [ -d .output ] && mv .output .output.old; mv .output.new .output"
+      - ssh -n "$HOST" "sudo supervisorctl restart scentology_storefront"
+      - ssh -n "$HOST" "sleep 6; curl -fsS -o /dev/null http://127.0.0.1:8092/ && echo 'post-deploy health OK'"
 
 trigger:
   branch:
