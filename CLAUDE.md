@@ -6,9 +6,9 @@ Public shop for `../ecom-api` (Nuxt 3, **server rendered** for SEO). Tailwind + 
 
 - `app.config.ts` — store name/tagline/contact, announcement bar, hero copy, promises, FAQ. Rebrand here; products and categories come from the API.
 - `tailwind.config.js` + `assets/css/main.css` — tokens (`noir-*`, `gold`, `cream`, `ink`) and `s-*` classes (`s-container`, `s-band`, `s-title`, `s-eyebrow`, `s-btn-gold|dark|ghost|line`, `s-chip`, `s-input`, `s-gold-text`). Fonts: Cinzel (wordmark), Cormorant Garamond (display), Figtree (body). Use sans for prices (Cormorant has old-style numerals).
-- `composables/useApi.js` — the only fetch client (`api(path, { query })`); base url set by `plugins/api.js`. `useCatalog.js` — categories tree, price/discount/image/stock helpers, `money()`. `useCart.js` / `useWishlist.js` — bag and saved items in localStorage. `useAuth.js` — customer session (`request()` sends the token; 401 signs out), `friendly()` error messages.
+- `composables/useApi.js` — the only fetch client (`api(path, { query })`); base url set by `plugins/api.js`. `useCatalog.js` — categories tree, price/discount/image/stock helpers, `money()`. `useCart.js` / `useWishlist.js` — bag and saved items in localStorage. `useAuth.js` — customer session (`request()` sends the token; 401 signs out), email code sign-in (`components/auth/EmailSignIn.vue`), `friendly()` error messages.
 - `components/layout|home|product|ui/*` — auto-imported as `LayoutSiteHeader`, `HomeHeroSection`, `ProductCard`, `UiSectionHeading`…
-- Pages: `/`, `/products` (filters in the query string: `category`, `sub`, `q`, `min`, `max`, `on_sale`, `opt.<Option>=a,b`, `sort`, `page`), `/products/[slug]`, `/saved`, `/pages/[slug]`; `/checkout` (phone OTP sign-in → address → pay), `/account`, `/account/orders/[id]`; `/stores` is a placeholder.
+- Pages: `/`, `/products` (filters in the query string: `category`, `sub`, `q`, `min`, `max`, `on_sale`, `opt.<Option>=a,b`, `sort`, `page`), `/products/[slug]`, `/saved`, `/pages/[slug]`; `/checkout` (email code sign-in → address, or store collection with a phone field → pay), `/account`, `/account/orders/[id]`; `/stores` is a placeholder.
 
 ## Commands
 

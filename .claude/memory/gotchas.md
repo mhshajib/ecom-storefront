@@ -10,3 +10,4 @@
 - **Never nest links** (`<a>` inside `<a>`/NuxtLink): the browser splits them and hydration breaks for the whole page.
 - **Shared data every page needs (shop details) is fetched once in app.vue with `await`**; composables read it with `useNuxtData` so server and client render the same.
 - Drone pipes the step script into sh on stdin, so every remote `ssh` step must be `ssh -n`; a plain ssh swallows the rest of the script and a later line runs truncated (`usage: ssh ...`, exit 255).
+- **Customers sign in by email, not phone** (2026-09-30): the account has no phone. Orders still need `customer_phone`: delivery takes it from the address, store collection from the pickup phone field.
